@@ -216,3 +216,28 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Next.js / Frontend
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/node_modules/
+frontend/.npm/
+frontend/.cache/
+frontend/.turbo/
+
+# Next.js standalone output
+frontend/.next/standalone/
+frontend/.next/static/
+
+# Vitest / Testing
+frontend/coverage/
+
+# ESLint cache
+frontend/.eslintcache
+
+# TypeScript build info
+frontend/*.tsbuildinfo
+
+# Vercel
+.vercel/

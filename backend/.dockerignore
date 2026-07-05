@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtualenvs (never ship a host venv into the image)
+.venv/
+venv/
+env/
+
+# Local data / secrets (mounted or injected at runtime, not baked in)
+.env
+data/
+*.sqlite
+*.db
+
+# Editor / OS cruft
+.vscode/
+.idea/
+.DS_Store
