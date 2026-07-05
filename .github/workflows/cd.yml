@@ -22,6 +22,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # GHCR requires lowercase repository paths, but github.repository preserves
+      # the original casing (e.g. Totenem/WritOauth). Lowercase it once here.
+      - name: Compute lowercase image repo
+        run: echo "IMAGE_REPO=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -32,8 +37,11 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/backend:latest
-            ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+            ghcr.io/${{ env.IMAGE_REPO }}/backend:latest
+            ghcr.io/${{ env.IMAGE_REPO }}/backend:${{ github.sha }}
+          # Reuse the layer + pip caches produced by CI builds.
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -42,8 +50,10 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/frontend:latest
-            ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+            ghcr.io/${{ env.IMAGE_REPO }}/frontend:latest
+            ghcr.io/${{ env.IMAGE_REPO }}/frontend:${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
 
   deploy:
     name: Deploy
@@ -53,11 +63,13 @@ jobs:
     steps:
       - name: Deploy to Railway/Render
         run: |
+          # GHCR paths are lowercase; github.repository preserves original casing.
+          REPO="${GITHUB_REPOSITORY,,}"
           echo "Configure RAILWAY_TOKEN or RENDER_API_KEY in repository secrets."
           echo "Then replace this step with the appropriate deploy CLI command."
           echo "Images available at:"
-          echo "  ghcr.io/${{ github.repository }}/backend:${{ github.sha }}"
-          echo "  ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}"
+          echo "  ghcr.io/${REPO}/backend:${{ github.sha }}"
+          echo "  ghcr.io/${REPO}/frontend:${{ github.sha }}"
 
   health-check:
     name: Health Check

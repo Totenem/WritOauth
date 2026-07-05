@@ -49,3 +49,28 @@ disk usage only grows. Use the Makefile targets:
   since the cache is gone.
 - `make prune-all` — destructive: also removes named volumes (wipes DB / vector
   store / Ollama models) and all unused images. Clean-slate only.
+
+## CI/CD image tags: GHCR requires lowercase
+
+GitHub Container Registry (and OCI registries generally) reject uppercase in
+repository paths, but `${{ github.repository }}` preserves the original casing
+(e.g. `Totenem/WritOauth`). Pushing `ghcr.io/Totenem/WritOauth/backend:latest`
+fails with `repository name must be lowercase`.
+
+`.github/workflows/cd.yml` handles this by lowercasing once per job:
+
+```yaml
+- name: Compute lowercase image repo
+  run: echo "IMAGE_REPO=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+```
+
+and referencing `ghcr.io/${{ env.IMAGE_REPO }}/...` in the tags. Notes:
+
+- `${GITHUB_REPOSITORY,,}` is **bash** lowercase expansion, so the step must run
+  on a bash shell (the `ubuntu-latest` default). On `pwsh`/Windows runners it
+  won't lowercase — reuse `${{ env.IMAGE_REPO }}` instead of recomputing.
+- Vars set via `$GITHUB_ENV` are **job-scoped**. The `deploy` job can't see
+  `IMAGE_REPO` from `build-and-push`, so it recomputes `${GITHUB_REPOSITORY,,}`
+  inline. Any new job that references the image path must do the same.
+- This matters most for forks under a differently-cased org/user — the pipeline
+  stays correct without edits as long as the lowercasing is applied.
