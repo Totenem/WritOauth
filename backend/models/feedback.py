@@ -11,7 +11,10 @@ class Feedback(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     paper_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("papers.id", ondelete="CASCADE"), unique=True, nullable=False
+        Integer,
+        ForeignKey("papers.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
     )
     decision: Mapped[str] = mapped_column(Enum("genuine", "flagged"), nullable=False)
     remarks: Mapped[str | None] = mapped_column(Text, nullable=True)

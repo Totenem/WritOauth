@@ -11,10 +11,16 @@ class Paper(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     student_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True
+        Integer,
+        ForeignKey("students.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     subject_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("subjects.id", ondelete="RESTRICT"), nullable=False, index=True
+        Integer,
+        ForeignKey("subjects.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     type: Mapped[str] = mapped_column(Enum("baseline", "submission"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)

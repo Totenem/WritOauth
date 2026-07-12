@@ -10,5 +10,7 @@ class AnalysisService:
     def get_analysis(self, analysis_id: int) -> AnalysisResultResponse:
         raise NotImplementedError
 
-    def submit_feedback(self, analysis_id: int, data: FeedbackCreate) -> FeedbackResponse:
+    def submit_feedback(
+        self, analysis_id: int, data: FeedbackCreate
+    ) -> FeedbackResponse:
         raise NotImplementedError

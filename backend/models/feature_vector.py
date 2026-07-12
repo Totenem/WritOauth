@@ -9,7 +9,10 @@ class FeatureVector(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     paper_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("papers.id", ondelete="CASCADE"), unique=True, nullable=False
+        Integer,
+        ForeignKey("papers.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
     )
     features: Mapped[dict] = mapped_column(JSON, nullable=False)
 

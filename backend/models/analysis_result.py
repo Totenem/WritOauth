@@ -9,7 +9,10 @@ class AnalysisResult(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     paper_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("papers.id", ondelete="CASCADE"), unique=True, nullable=False
+        Integer,
+        ForeignKey("papers.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
     )
     consistency_score: Mapped[float] = mapped_column(Float, nullable=False)
     confidence_level: Mapped[float] = mapped_column(Float, nullable=False)
