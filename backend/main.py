@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import auth, students, subjects, papers, analysis
+from api import analysis, auth, papers, students, subjects
 
 app = FastAPI(
     title="WritOauth API",

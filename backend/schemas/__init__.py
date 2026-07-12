@@ -1,14 +1,14 @@
-from schemas.auth import LoginRequest, TokenResponse
-from schemas.teacher import TeacherCreate, TeacherResponse
-from schemas.student import StudentCreate, StudentUpdate, StudentResponse
-from schemas.subject import SubjectCreate, SubjectUpdate, SubjectResponse
-from schemas.paper import BaselinePaperCreate, AnalysisPaperCreate, PaperResponse
 from schemas.analysis import (
-    BreakdownScore,
     AnalysisResultResponse,
+    BreakdownScore,
     FeedbackCreate,
     FeedbackResponse,
 )
+from schemas.auth import LoginRequest, TokenResponse
+from schemas.paper import AnalysisPaperCreate, BaselinePaperCreate, PaperResponse
+from schemas.student import StudentCreate, StudentResponse, StudentUpdate
+from schemas.subject import SubjectCreate, SubjectResponse, SubjectUpdate
+from schemas.teacher import TeacherCreate, TeacherResponse
 
 __all__ = [
     "LoginRequest",

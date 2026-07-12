@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from schemas.subject import SubjectCreate, SubjectUpdate, SubjectResponse
+from schemas.subject import SubjectCreate, SubjectResponse, SubjectUpdate
 
 
 class SubjectService:

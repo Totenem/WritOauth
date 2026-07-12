@@ -1,9 +1,9 @@
-from ai.fingerprint_service import FingerprintService
 from ai.embedding_service import EmbeddingService
+from ai.explanation_service import ExplanationService
+from ai.fingerprint_service import FingerprintService
+from ai.profile_engine import ProfileEngine
 from ai.retrieval_service import RetrievalService
 from ai.scoring_service import ScoringService
-from ai.explanation_service import ExplanationService
-from ai.profile_engine import ProfileEngine
 from llm.langchain_pipeline import LangChainPipeline
 
 

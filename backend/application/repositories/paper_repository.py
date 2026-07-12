@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from models.paper import Paper
-from schemas.paper import BaselinePaperCreate, AnalysisPaperCreate
+from schemas.paper import AnalysisPaperCreate, BaselinePaperCreate
 
 
 class PaperRepository:

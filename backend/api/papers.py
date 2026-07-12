@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database.connection import get_db
-from schemas.paper import BaselinePaperCreate, AnalysisPaperCreate, PaperResponse
+from schemas.paper import AnalysisPaperCreate, BaselinePaperCreate, PaperResponse
 
 router = APIRouter(prefix="/api/papers", tags=["papers"])
 
