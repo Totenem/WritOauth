@@ -1,4 +1,4 @@
-.PHONY: up down build migrate lint-backend lint-frontend test-backend test-frontend logs prune prune-all
+.PHONY: up down build migrate lint-backend lint-frontend test-backend test-frontend check logs prune prune-all
 
 up:
 	docker compose up
@@ -26,6 +26,12 @@ test-backend:
 
 test-frontend:
 	docker compose exec frontend npm test
+
+# Runs the same checks as CI (black/ruff/mypy/pytest + frontend lint/type-check/test)
+# against your local backend/.venv and frontend/node_modules — no Docker containers
+# required. Run this before opening a PR. See scripts/pre-pr.sh.
+check:
+	bash scripts/pre-pr.sh
 
 logs:
 	docker compose logs -f

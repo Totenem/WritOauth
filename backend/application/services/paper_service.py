@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from schemas.paper import BaselinePaperCreate, AnalysisPaperCreate, PaperResponse
+from schemas.paper import AnalysisPaperCreate, BaselinePaperCreate, PaperResponse
 
 
 class PaperService:

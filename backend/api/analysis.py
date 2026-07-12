@@ -12,7 +12,9 @@ async def get_analysis(analysis_id: int, db: Session = Depends(get_db)) -> dict:
     return {"status": "not_implemented"}
 
 
-@router.post("/{analysis_id}/feedback", response_model=FeedbackResponse, status_code=201)
+@router.post(
+    "/{analysis_id}/feedback", response_model=FeedbackResponse, status_code=201
+)
 async def submit_feedback(
     analysis_id: int, body: FeedbackCreate, db: Session = Depends(get_db)
 ) -> dict:

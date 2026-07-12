@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from schemas.student import StudentCreate, StudentUpdate, StudentResponse
+from schemas.student import StudentCreate, StudentResponse, StudentUpdate
 
 
 class StudentService:

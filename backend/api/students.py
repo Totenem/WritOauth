@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database.connection import get_db
-from schemas.student import StudentCreate, StudentUpdate, StudentResponse
+from schemas.student import StudentCreate, StudentResponse, StudentUpdate
 
 router = APIRouter(prefix="/api/students", tags=["students"])
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database.connection import get_db
-from schemas.subject import SubjectCreate, SubjectUpdate, SubjectResponse
+from schemas.subject import SubjectCreate, SubjectResponse, SubjectUpdate
 
 router = APIRouter(prefix="/api/subjects", tags=["subjects"])
 
