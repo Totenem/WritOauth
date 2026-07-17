@@ -19,7 +19,7 @@ cp .env.example .env
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `DATABASE_URL` | `mysql+pymysql://writoauth:password@mysql:3306/writoauth_db` | MySQL connection string |
-| `JWT_SECRET` | *(change this)* | Sign JWT tokens — use a long random string in prod |
+| `JWT_SECRET_KEY` | *(change this)* | Sign JWT tokens — use a long random string in prod |
 | `JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
 | `CHROMA_DB_PATH` | `/app/data/chromadb` | Where ChromaDB stores vector data |
 | `HF_MODEL` | `Qwen/Qwen2.5-1.5B-Instruct` | LLM model name served by Ollama |
