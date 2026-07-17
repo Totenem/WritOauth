@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "mysql+pymysql://writoauth:password@mysql:3306/writoauth_db"
-    jwt_secret: str = "changeme"
+    jwt_secret: str = "ryturdfytgafshgfvhasj"
     jwt_algorithm: str = "HS256"
     chroma_db_path: str = "/app/data/chromadb"
     hf_model: str = "Qwen/Qwen2.5-1.5B-Instruct"
