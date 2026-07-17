@@ -7,6 +7,11 @@ cryptography==42.0.7
 pydantic==2.7.1
 pydantic-settings==2.2.1
 passlib[bcrypt]==1.7.4
+# passlib 1.7.4 (unmaintained since 2020) probes the bcrypt backend with a
+# 73-byte password at import time; bcrypt>=4.1 raises instead of truncating,
+# which breaks every hash_password/verify_password call. Pin bcrypt<4.1 until
+# passlib is replaced or patched.
+bcrypt==4.0.1
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.9
 langchain==0.2.3

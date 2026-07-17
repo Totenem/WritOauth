@@ -1,4 +1,18 @@
-.PHONY: up down build migrate lint-backend lint-frontend test-backend test-frontend check logs prune prune-all
+.PHONY: up down build migrate lint-backend fix-backend lint-frontend test-backend test-frontend check logs prune prune-all
+
+# backend/.venv layout differs by OS: Scripts/ on Windows, bin/ elsewhere.
+ifeq ($(OS),Windows_NT)
+BACKEND_PY := .venv/Scripts/python.exe
+# Force Git Bash for recipes. Without this, make falls back to cmd.exe when
+# invoked from PowerShell/cmd (no SHELL env var set there) but uses real bash
+# when invoked from a Git Bash session (which does set SHELL) — cmd wants
+# backslash paths, bash wants forward slashes, so recipes can't satisfy both.
+# Pinning SHELL makes recipe behavior consistent regardless of caller.
+SHELL := C:/PROGRA~1/Git/bin/bash.exe
+.SHELLFLAGS := -ec
+else
+BACKEND_PY := .venv/bin/python
+endif
 
 up:
 	docker compose up
@@ -12,17 +26,25 @@ build:
 migrate:
 	docker compose exec backend alembic upgrade head
 
+# Runs against backend/.venv (not Docker) — the backend container image only
+# has runtime deps, not black/ruff/mypy. See backend/requirements-dev.txt.
 lint-backend:
-	docker compose exec backend black --check .
-	docker compose exec backend ruff check .
-	docker compose exec backend mypy . --ignore-missing-imports
+	cd backend && $(BACKEND_PY) -m black --check .
+	cd backend && $(BACKEND_PY) -m ruff check .
+	cd backend && $(BACKEND_PY) -m mypy . --ignore-missing-imports
+
+# Auto-fixes what lint-backend can fix (formatting + import order); mypy findings
+# still need manual fixes, so run lint-backend after to see what's left.
+fix-backend:
+	cd backend && $(BACKEND_PY) -m black .
+	cd backend && $(BACKEND_PY) -m ruff check . --fix
 
 lint-frontend:
 	docker compose exec frontend npm run lint
 	docker compose exec frontend npm run type-check
 
 test-backend:
-	docker compose exec backend pytest tests/ -v
+	cd backend && $(BACKEND_PY) -m pytest tests/ -v
 
 test-frontend:
 	docker compose exec frontend npm test

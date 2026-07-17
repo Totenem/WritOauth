@@ -1,12 +1,14 @@
 from datetime import timedelta
 
+from passlib.hash import bcrypt
+
 
 def hash_password(password: str) -> str:
-    raise NotImplementedError
+    return bcrypt.hash(password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    raise NotImplementedError
+    return bcrypt.verify(plain, hashed)
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
