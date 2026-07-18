@@ -6,6 +6,7 @@ pymysql==1.1.0
 cryptography==42.0.7
 pydantic==2.7.1
 pydantic-settings==2.2.1
+python-dotenv==1.2.2
 passlib[bcrypt]==1.7.4
 # passlib 1.7.4 (unmaintained since 2020) probes the bcrypt backend with a
 # 73-byte password at import time; bcrypt>=4.1 raises instead of truncating,
