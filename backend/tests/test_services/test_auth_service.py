@@ -35,9 +35,7 @@ def test_login_returns_decodable_token_on_success(db_session: Session) -> None:
     service = AuthService(db_session)
     _register(service)
 
-    token = service.login(
-        LoginRequest(email="ada@example.com", password="secret123")
-    )
+    token = service.login(LoginRequest(email="ada@example.com", password="secret123"))
 
     assert token.token_type == "bearer"
     payload = decode_access_token(token.access_token)
@@ -48,9 +46,7 @@ def test_login_raises_on_unknown_email(db_session: Session) -> None:
     service = AuthService(db_session)
 
     with pytest.raises(InvalidCredentialsError):
-        service.login(
-            LoginRequest(email="missing@example.com", password="whatever")
-        )
+        service.login(LoginRequest(email="missing@example.com", password="whatever"))
 
 
 def test_login_raises_on_wrong_password(db_session: Session) -> None:
@@ -58,9 +54,7 @@ def test_login_raises_on_wrong_password(db_session: Session) -> None:
     _register(service)
 
     with pytest.raises(InvalidCredentialsError):
-        service.login(
-            LoginRequest(email="ada@example.com", password="wrong-password")
-        )
+        service.login(LoginRequest(email="ada@example.com", password="wrong-password"))
 
 
 def test_login_errors_are_the_same_for_unknown_email_and_wrong_password(
