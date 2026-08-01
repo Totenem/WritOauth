@@ -30,7 +30,9 @@ class Paper(Base):
         nullable=False,
         index=True,
     )
-    type: Mapped[str] = mapped_column(Enum("baseline", "submission"), nullable=False)
+    type: Mapped[str] = mapped_column(
+        Enum("baseline", "submission", name="paper_type"), nullable=False
+    )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

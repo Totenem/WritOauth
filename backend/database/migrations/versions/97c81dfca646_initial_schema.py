@@ -77,7 +77,11 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("student_id", sa.Integer(), nullable=False),
         sa.Column("subject_id", sa.Integer(), nullable=False),
-        sa.Column("type", sa.Enum("baseline", "submission"), nullable=False),
+        sa.Column(
+            "type",
+            sa.Enum("baseline", "submission", name="paper_type"),
+            nullable=False,
+        ),
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column(
             "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
@@ -116,7 +120,11 @@ def upgrade() -> None:
         "feedback",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("paper_id", sa.Integer(), nullable=False),
-        sa.Column("decision", sa.Enum("genuine", "flagged"), nullable=False),
+        sa.Column(
+            "decision",
+            sa.Enum("genuine", "flagged", name="feedback_decision"),
+            nullable=False,
+        ),
         sa.Column("remarks", sa.Text(), nullable=True),
         sa.Column(
             "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
@@ -140,3 +148,15 @@ def downgrade() -> None:
     op.drop_table("teachers")
     op.drop_table("students")
     # ### end Alembic commands ###
+
+    # Manually adjusted: on Postgres, sa.Enum(name=...) creates a standalone
+    # named type (CREATE TYPE ... AS ENUM) that op.drop_table() does NOT drop
+    # on its own - only the column referencing it goes away with the table.
+    # Left alone, a downgrade followed by another upgrade fails with
+    # "type already exists". MySQL has no equivalent (ENUM there is just an
+    # inline column constraint, no separate type object), so this step is a
+    # no-op there. bind=None + checkfirst=True makes it a safe no-op on any
+    # dialect without a real named enum type.
+    bind = op.get_bind()
+    sa.Enum(name="paper_type").drop(bind, checkfirst=True)
+    sa.Enum(name="feedback_decision").drop(bind, checkfirst=True)

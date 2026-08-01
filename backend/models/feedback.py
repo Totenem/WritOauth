@@ -20,7 +20,9 @@ class Feedback(Base):
         unique=True,
         nullable=False,
     )
-    decision: Mapped[str] = mapped_column(Enum("genuine", "flagged"), nullable=False)
+    decision: Mapped[str] = mapped_column(
+        Enum("genuine", "flagged", name="feedback_decision"), nullable=False
+    )
     remarks: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

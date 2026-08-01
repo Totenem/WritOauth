@@ -6,7 +6,7 @@ WritOauth is an AI-powered authorship verification platform that helps educators
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Docker Desktop | Latest | Runs all services (MySQL, ChromaDB, Ollama) |
+| Docker Desktop | Latest | Runs all services (Postgres, ChromaDB, Ollama) |
 | Node.js | 20+ | Frontend development outside Docker |
 | Python | 3.11+ | Backend development outside Docker |
 | Git | Any | Version control |
@@ -47,10 +47,10 @@ npm install
 npm run dev
 ```
 
-You still need MySQL, ChromaDB, and Ollama running. The easiest way is to start only those services via Docker:
+You still need Postgres, ChromaDB, and Ollama running. The easiest way is to start only those services via Docker:
 
 ```bash
-docker compose up mysql chromadb ollama
+docker compose up postgres chromadb ollama
 ```
 
 ## Branch Naming (Git Flow Lite)
