@@ -13,6 +13,7 @@ python_version = "3.11"
 strict = false
 ignore_missing_imports = true
 exclude = ["database/migrations"]
+plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

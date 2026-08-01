@@ -25,11 +25,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-      chromadb:
-        condition: service_started
     volumes:
       - ./backend:/app
-      - chroma_data:/app/data/chromadb
 
   mysql:
     image: mysql:8.0
@@ -45,31 +42,5 @@ services:
       retries: 5
       start_period: 30s
 
-  chromadb:
-    # Pinned to match chromadb-client in backend/requirements.txt (avoids
-    # client/server protocol drift that :latest silently introduces).
-    image: chromadb/chroma:0.5.23
-    ports:
-      - "8001:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_models:/root/.ollama
-    # Uncomment for GPU support:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
-
 volumes:
   mysql_data:
-  chroma_data:
-  ollama_models:

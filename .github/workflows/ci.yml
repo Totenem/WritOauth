@@ -77,13 +77,9 @@ jobs:
         run: pytest tests/ -v
         env:
           DATABASE_URL: sqlite:///./test.db
-          JWT_SECRET: test-secret
+          JWT_SECRET_KEY: test-secret
           JWT_ALGORITHM: HS256
-          CHROMA_DB_PATH: /tmp/chromadb
-          HF_MODEL: test-model
           EMBEDDING_MODEL: test-embedding
-          TOP_K: "3"
-          MAX_CONTEXT: "4096"
 
   test-frontend:
     name: Test Frontend
@@ -129,13 +125,9 @@ jobs:
         run: pytest tests/test_ai/ -v
         env:
           DATABASE_URL: sqlite:///./test.db
-          JWT_SECRET: test-secret
+          JWT_SECRET_KEY: test-secret
           JWT_ALGORITHM: HS256
-          CHROMA_DB_PATH: /tmp/chromadb
-          HF_MODEL: test-model
           EMBEDDING_MODEL: test-embedding
-          TOP_K: "3"
-          MAX_CONTEXT: "4096"
 
   docker-build:
     name: Docker Build
