@@ -19,13 +19,14 @@ export type FeedbackDecision = "genuine" | "flagged";
 
 export interface FeedbackRequest {
   decision: FeedbackDecision;
-  remarks?: string;
+  /** The API accepts `str | null`; null means "no remark", not an empty one. */
+  remarks?: string | null;
 }
 
 export interface Feedback {
   id: number;
   paper_id: number;
   decision: FeedbackDecision;
-  remarks?: string;
+  remarks: string | null;
   created_at: string;
 }
