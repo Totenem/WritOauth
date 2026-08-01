@@ -1,9 +1,18 @@
 import type { AnalysisResult, FeedbackRequest, Feedback } from "@/types";
+import api from "./api";
 
-export async function getAnalysis(_id: number): Promise<AnalysisResult> {
-  throw new Error("not_implemented");
+export async function getAnalysis(id: number): Promise<AnalysisResult> {
+  const { data } = await api.get<AnalysisResult>(`/api/analysis/${id}`);
+  return data;
 }
 
-export async function submitFeedback(_analysisId: number, _data: FeedbackRequest): Promise<Feedback> {
-  throw new Error("not_implemented");
+export async function submitFeedback(
+  analysisId: number,
+  payload: FeedbackRequest
+): Promise<Feedback> {
+  const { data } = await api.post<Feedback>(
+    `/api/analysis/${analysisId}/feedback`,
+    payload
+  );
+  return data;
 }
