@@ -1,3 +1,5 @@
+import { forwardRef } from "react";
+
 interface InputProps {
   label: string;
   name: string;
@@ -5,19 +7,20 @@ interface InputProps {
   placeholder?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  error?: string;
+  autoComplete?: string;
 }
 
-export default function Input({
-  label,
-  name,
-  type = "text",
-  placeholder,
-  value,
-  onChange,
-}: InputProps) {
+const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, name, type = "text", placeholder, value, onChange, onBlur, error, autoComplete },
+  ref
+) {
   return (
     <div>
-      <label htmlFor={name}>{label}</label>
+      <label htmlFor={name} className="mb-1 block text-sm font-medium text-text-muted">
+        {label}
+      </label>
       <input
         id={name}
         name={name}
@@ -25,7 +28,22 @@ export default function Input({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
+        autoComplete={autoComplete}
+        ref={ref}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${name}-error` : undefined}
+        className={`block w-full rounded-md border bg-white px-3 py-2 text-sm text-text placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+          error ? "border-danger" : "border-border-strong"
+        }`}
       />
+      {error && (
+        <p id={`${name}-error`} className="mt-1 text-sm text-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
-}
+});
+
+export default Input;
