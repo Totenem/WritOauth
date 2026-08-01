@@ -21,5 +21,6 @@ class PaperResponse(BaseModel):
     subject_id: int
     type: str
     created_at: datetime
+    analysis_id: int | None = None
 
     model_config = ConfigDict(from_attributes=True)

@@ -1,6 +1,13 @@
 import pytest
 from sqlalchemy.orm import Session
 
+from ai.embedding_service import EmbeddingService
+from ai.explanation_service import ExplanationService
+from ai.fingerprint_service import FingerprintService
+from ai.orchestrator import AIOrchestrator
+from ai.profile_engine import ProfileEngine
+from ai.retrieval_service import RetrievalService
+from ai.scoring_service import ScoringService
 from application.repositories.student_repository import StudentRepository
 from application.repositories.subject_repository import SubjectRepository
 from application.repositories.teacher_repository import TeacherRepository
@@ -9,10 +16,24 @@ from application.services.paper_service import (
     PaperNotFoundError,
     PaperService,
 )
+from models.analysis_result import AnalysisResult
+from models.baseline_profile import BaselineProfile
+from models.feature_vector import FeatureVector
 from schemas.paper import AnalysisPaperCreate, BaselinePaperCreate
 from schemas.student import StudentCreate
 from schemas.subject import SubjectCreate
 from schemas.teacher import TeacherCreate
+
+
+def _make_orchestrator() -> AIOrchestrator:
+    return AIOrchestrator(
+        fingerprint=FingerprintService(),
+        embedding=EmbeddingService(),
+        retrieval=RetrievalService(),
+        scoring=ScoringService(),
+        explanation=ExplanationService(),
+        profile=ProfileEngine(),
+    )
 
 
 def _make_student_and_subject(db_session: Session) -> tuple[int, int]:
@@ -89,3 +110,72 @@ def test_get_paper_raises_when_not_found(db_session: Session) -> None:
 
     with pytest.raises(PaperNotFoundError):
         service.get_paper(999)
+
+
+def test_upload_baseline_creates_feature_vector_and_baseline_profile(
+    db_session: Session,
+) -> None:
+    student_id, subject_id = _make_student_and_subject(db_session)
+    service = PaperService(db_session, orchestrator=_make_orchestrator())
+
+    response = service.upload_baseline(
+        BaselinePaperCreate(
+            student_id=student_id, subject_id=subject_id, content="The cat sat calmly."
+        )
+    )
+
+    feature_vector = (
+        db_session.query(FeatureVector)
+        .filter(FeatureVector.paper_id == response.id)
+        .first()
+    )
+    assert feature_vector is not None
+
+    profile = (
+        db_session.query(BaselineProfile)
+        .filter(BaselineProfile.student_id == student_id)
+        .first()
+    )
+    assert profile is not None
+    assert profile.confidence_level == pytest.approx(1 / 3)
+
+
+def test_upload_for_analysis_without_baseline_has_no_analysis_id(
+    db_session: Session,
+) -> None:
+    student_id, subject_id = _make_student_and_subject(db_session)
+    service = PaperService(db_session, orchestrator=_make_orchestrator())
+
+    response = service.upload_for_analysis(
+        AnalysisPaperCreate(student_id=student_id, subject_id=subject_id, content="x")
+    )
+
+    assert response.analysis_id is None
+
+
+def test_upload_for_analysis_with_baseline_creates_analysis_result(
+    db_session: Session,
+) -> None:
+    student_id, subject_id = _make_student_and_subject(db_session)
+    service = PaperService(db_session, orchestrator=_make_orchestrator())
+    service.upload_baseline(
+        BaselinePaperCreate(
+            student_id=student_id, subject_id=subject_id, content="The cat sat calmly."
+        )
+    )
+
+    response = service.upload_for_analysis(
+        AnalysisPaperCreate(
+            student_id=student_id, subject_id=subject_id, content="The cat sat calmly."
+        )
+    )
+
+    assert response.analysis_id is not None
+    analysis = (
+        db_session.query(AnalysisResult)
+        .filter(AnalysisResult.id == response.analysis_id)
+        .first()
+    )
+    assert analysis is not None
+    assert analysis.paper_id == response.id
+    assert analysis.consistency_score == pytest.approx(100.0)
