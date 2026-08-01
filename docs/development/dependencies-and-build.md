@@ -69,8 +69,13 @@ and referencing `ghcr.io/${{ env.IMAGE_REPO }}/...` in the tags. Notes:
 - `${GITHUB_REPOSITORY,,}` is **bash** lowercase expansion, so the step must run
   on a bash shell (the `ubuntu-latest` default). On `pwsh`/Windows runners it
   won't lowercase — reuse `${{ env.IMAGE_REPO }}` instead of recomputing.
-- Vars set via `$GITHUB_ENV` are **job-scoped**. The `deploy` job can't see
-  `IMAGE_REPO` from `build-and-push`, so it recomputes `${GITHUB_REPOSITORY,,}`
-  inline. Any new job that references the image path must do the same.
+- Vars set via `$GITHUB_ENV` are **job-scoped**. Everything that references the
+  image path currently lives in the single `build-and-push` job, so this isn't
+  an issue today — but if a new job is ever added that also needs the image
+  path, it can't see `IMAGE_REPO` from `build-and-push` and must recompute
+  `${GITHUB_REPOSITORY,,}` inline (or the value must be passed via job outputs).
 - This matters most for forks under a differently-cased org/user — the pipeline
   stays correct without edits as long as the lowercasing is applied.
+- Note: `cd.yml` only builds and pushes images to GHCR for provenance. Actual
+  deployment is handled by Render's and Vercel's native GitHub integrations
+  (see `docs/development/deployment.md`), not by a job in this workflow.
