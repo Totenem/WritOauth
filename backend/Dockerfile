@@ -4,7 +4,6 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    default-libmysqlclient-dev \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
@@ -21,10 +20,8 @@ FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    default-libmysqlclient-dev \
-    && rm -rf /var/lib/apt/lists/*
-
+# psycopg[binary] ships prebuilt wheels, so no native build deps (e.g. a
+# libmysqlclient-dev equivalent) are needed in the runtime image.
 COPY --from=builder /opt/venv /opt/venv
 COPY . .
 
@@ -32,4 +29,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Shell-form CMD (not exec-form array) so $PORT is expanded at container
+# start - Render (and most PaaS hosts) inject PORT and require the app to
+# listen on it rather than a hardcoded port. --reload is dropped here: it's a
+# dev-only filesystem watcher with no benefit (and only overhead) in a
+# deployed container.
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}

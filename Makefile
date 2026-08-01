@@ -59,7 +59,7 @@ logs:
 	docker compose logs -f
 
 # Reclaim disk space safely: stops containers and drops dangling images +
-# build cache. Named volumes (mysql_data, chroma_data, ollama_models) are KEPT,
+# build cache. Named volumes (postgres_data, chroma_data, ollama_models) are KEPT,
 # so your DB, vector store, and pulled models survive. Note the next build
 # rebuilds from scratch (slower) since the cache is gone.
 prune:

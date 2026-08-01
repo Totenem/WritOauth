@@ -8,7 +8,7 @@ Browser (Next.js page)
   → FastAPI route (backend/api/)
   → Service (backend/application/services/)
   → Repository (backend/application/repositories/)
-  → SQLAlchemy ORM → MySQL
+  → SQLAlchemy ORM → Postgres
 ```
 
 For paper analysis, the flow extends into the AI pipeline:
@@ -24,7 +24,7 @@ PaperService.upload_for_analysis()
       → LangChainPipeline.run()         (calls Qwen via Ollama)
       → ScoringService.score()          (parses LLM response)
       → ExplanationService.explain()    (natural language reasoning)
-  → AnalysisRepository.save()          (persists to MySQL)
+  → AnalysisRepository.save()          (persists to Postgres)
 ```
 
 ## Backend Folder Map

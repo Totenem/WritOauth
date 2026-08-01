@@ -20,8 +20,8 @@ def client() -> Generator[TestClient, None, None]:
         poolclass=StaticPool,
     )
 
-    # SQLite ignores FK constraints unless a connection opts in; MySQL
-    # (used in production) enforces them by default.
+    # SQLite ignores FK constraints unless a connection opts in; prod
+    # (Postgres) enforces them by default.
     @event.listens_for(engine, "connect")
     def _enable_sqlite_foreign_keys(dbapi_connection, connection_record):  # type: ignore[no-untyped-def]
         cursor = dbapi_connection.cursor()
