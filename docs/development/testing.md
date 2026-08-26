@@ -20,7 +20,7 @@ pytest tests/test_ai/ -v
 
 ### Environment for Tests
 
-CI sets `DATABASE_URL=sqlite:///./test.db` so tests don't need a running MySQL instance. The SQLite URL is compatible with SQLAlchemy's sync engine.
+CI sets `DATABASE_URL=sqlite:///./test.db` so tests don't need a running Postgres instance. The SQLite URL is compatible with SQLAlchemy's sync engine.
 
 ### Test File Conventions
 

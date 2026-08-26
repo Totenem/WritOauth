@@ -18,7 +18,7 @@ cp .env.example .env
 
 | Variable | Default | Notes |
 |----------|---------|-------|
-| `DATABASE_URL` | `mysql+pymysql://writoauth:password@mysql:3306/writoauth_db` | MySQL connection string |
+| `DATABASE_URL` | `postgresql+psycopg://writoauth:password@postgres:5432/writoauth_db` | Postgres connection string |
 | `JWT_SECRET_KEY` | *(change this)* | Sign JWT tokens — use a long random string in prod |
 | `JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
 | `CHROMA_DB_PATH` | `/app/data/chromadb` | Where ChromaDB stores vector data |
@@ -27,10 +27,9 @@ cp .env.example .env
 | `TOP_K` | `3` | Number of baseline samples retrieved per analysis |
 | `MAX_CONTEXT` | `4096` | Maximum token context for LLM |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Used by the browser to reach the backend |
-| `MYSQL_ROOT_PASSWORD` | `rootpassword` | MySQL root password (Docker only) |
-| `MYSQL_DATABASE` | `writoauth_db` | Database name |
-| `MYSQL_USER` | `writoauth` | Application DB user |
-| `MYSQL_PASSWORD` | `password` | Application DB password |
+| `POSTGRES_USER` | `writoauth` | Application DB user (Docker only) |
+| `POSTGRES_PASSWORD` | `password` | Application DB password (Docker only) |
+| `POSTGRES_DB` | `writoauth_db` | Database name (Docker only) |
 
 **Note on `NEXT_PUBLIC_API_URL`:** When the browser makes requests, it must use `http://localhost:8000`. When the frontend container talks to the backend container, it uses `http://backend:8000`. These are different — the `docker-compose.yml` sets `NEXT_PUBLIC_API_URL=http://localhost:8000` as a container override, which is correct for a dev setup where the browser accesses the backend through the host.
 
@@ -44,14 +43,14 @@ docker compose up
 |---------|------|-------------|
 | `frontend` | 3000 | Next.js dev server |
 | `backend` | 8000 | FastAPI with hot reload |
-| `mysql` | 3306 | MySQL 8.0 — application database |
+| `postgres` | 5432 | Postgres 16 — application database |
 | `chromadb` | 8001 | ChromaDB — vector store for embeddings |
 | `ollama` | 11434 | Ollama — serves the Qwen LLM |
 
 Start only infrastructure (for local code development):
 
 ```bash
-docker compose up mysql chromadb ollama
+docker compose up postgres chromadb ollama
 ```
 
 ## Running Database Migrations

@@ -19,57 +19,36 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    # The image's own CMD drops --reload (correct for the deployed/prod
+    # container - see backend/Dockerfile), but local dev mounts the source
+    # tree as a volume and wants hot-reload, so restore it here for compose.
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
     env_file: .env
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
-      chromadb:
-        condition: service_started
     volumes:
       - ./backend:/app
-      - chroma_data:/app/data/chromadb
 
-  mysql:
-    image: mysql:8.0
+  postgres:
+    image: postgres:16
     ports:
-      - "3307:3306"
+      - "5432:5432"
     env_file: .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-writoauth}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-writoauth_db}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-writoauth} -d ${POSTGRES_DB:-writoauth_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
 
-  chromadb:
-    # Pinned to match chromadb-client in backend/requirements.txt (avoids
-    # client/server protocol drift that :latest silently introduces).
-    image: chromadb/chroma:0.5.23
-    ports:
-      - "8001:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_models:/root/.ollama
-    # Uncomment for GPU support:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
-
 volumes:
-  mysql_data:
-  chroma_data:
-  ollama_models:
+  postgres_data:
