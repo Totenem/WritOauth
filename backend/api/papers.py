@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from typing import Literal
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from application.services.paper_service import (
@@ -64,6 +66,31 @@ async def upload_for_analysis(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
         ) from exc
+
+
+@router.get("", response_model=list[PaperResponse])
+async def list_papers(
+    student_id: int | None = None,
+    subject_id: int | None = None,
+    type: Literal["baseline", "submission"] | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher),
+) -> list[PaperResponse]:
+    """The caller's own papers, newest first.
+
+    Filters narrow within the caller's scope and can never widen it: a
+    student_id belonging to another teacher simply returns nothing.
+    """
+    return PaperService(db).list_papers(
+        current_teacher.id,
+        student_id=student_id,
+        subject_id=subject_id,
+        paper_type=type,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post("/extract", response_model=ExtractionResponse)

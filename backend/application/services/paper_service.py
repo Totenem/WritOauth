@@ -84,6 +84,25 @@ class PaperService:
         )
         return response
 
+    def list_papers(
+        self,
+        teacher_id: int,
+        student_id: int | None = None,
+        subject_id: int | None = None,
+        paper_type: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[PaperResponse]:
+        papers = self.paper_repository.list_for_teacher(
+            teacher_id,
+            student_id=student_id,
+            subject_id=subject_id,
+            paper_type=paper_type,
+            limit=limit,
+            offset=offset,
+        )
+        return [PaperResponse.model_validate(paper) for paper in papers]
+
     def get_paper(self, paper_id: int, teacher_id: int) -> PaperResponse:
         paper = self.paper_repository.get_by_id(paper_id)
         if paper is None:

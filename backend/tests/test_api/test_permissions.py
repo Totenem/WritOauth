@@ -298,3 +298,54 @@ def test_second_teacher_sees_their_own_students(
 
     assert names_b == ["Student B"]
     assert names_a == ["Student A"]
+
+
+def test_paper_list_excludes_another_teachers_papers(
+    client: TestClient, auth_headers: dict, other_headers: dict
+) -> None:
+    student_id, subject_id = _make_student_and_subject(client, auth_headers)
+    client.post(
+        "/api/papers/baseline",
+        json={"student_id": student_id, "subject_id": subject_id, "content": "essay"},
+        headers=auth_headers,
+    )
+
+    assert client.get("/api/papers", headers=other_headers).json() == []
+    assert len(client.get("/api/papers", headers=auth_headers).json()) == 1
+
+
+def test_paper_list_filters_cannot_widen_scope(
+    client: TestClient, auth_headers: dict, other_headers: dict
+) -> None:
+    """Filtering by another teacher's student id must return nothing, not
+    that student's papers."""
+    student_id, subject_id = _make_student_and_subject(client, auth_headers)
+    client.post(
+        "/api/papers/baseline",
+        json={"student_id": student_id, "subject_id": subject_id, "content": "essay"},
+        headers=auth_headers,
+    )
+
+    response = client.get(f"/api/papers?student_id={student_id}", headers=other_headers)
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_paper_list_filters_by_type(client: TestClient, auth_headers: dict) -> None:
+    student_id, subject_id = _make_student_and_subject(client, auth_headers)
+    for path in ("/api/papers/baseline", "/api/papers/analyze"):
+        client.post(
+            path,
+            json={
+                "student_id": student_id,
+                "subject_id": subject_id,
+                "content": "essay",
+            },
+            headers=auth_headers,
+        )
+
+    baselines = client.get("/api/papers?type=baseline", headers=auth_headers).json()
+
+    assert len(baselines) == 1
+    assert baselines[0]["type"] == "baseline"
