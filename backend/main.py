@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import analysis, auth, papers, students, subjects
+from api import analysis, auth, dashboard, papers, students, subjects
 from config.settings import get_settings
 
 app = FastAPI(
@@ -23,6 +23,7 @@ app.include_router(students.router)
 app.include_router(subjects.router)
 app.include_router(papers.router)
 app.include_router(analysis.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/health", tags=["health"])

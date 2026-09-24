@@ -2,9 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design tokens.
+ *
+ * Every colour is an "R G B" triple so Tailwind can apply opacity through
+ * `rgb(var(--x) / <alpha-value>)`. Dark mode redefines the same names, so
+ * no component needs a `dark:` variant - they all read the semantic token.
+ *
+ * Dark mode follows the system preference, and an explicit [data-theme]
+ * on <html> overrides it so the toggle can win either way.
+ */
+
 @layer base {
   :root {
-    /* Primary blue scale — actions, links, focus states */
+    /* Primary blue scale - actions, links, focus states */
     --color-primary-50: 239 246 255;
     --color-primary-100: 219 234 254;
     --color-primary-200: 191 219 254;
@@ -16,30 +27,162 @@
     --color-primary-800: 30 64 175;
     --color-primary-900: 30 58 138;
 
-    /* Backgrounds: white / very light slate-blue */
-    --color-bg: 255 255 255;
-    --color-bg-subtle: 248 250 252;
-    --color-bg-muted: 241 245 249;
+    /* Surfaces. `elevated` sits above `bg` - cards, sheets, popovers. */
+    --color-bg: 246 246 248;
+    --color-bg-subtle: 241 241 245;
+    --color-bg-muted: 233 233 238;
+    --color-bg-elevated: 255 255 255;
 
-    /* Text: dark slate/blue-gray, never pure black */
-    --color-text: 15 23 42;
-    --color-text-muted: 71 85 105;
-    --color-text-subtle: 100 116 139;
+    /* Text: never pure black, following Apple's grey ramp */
+    --color-text: 28 28 30;
+    --color-text-muted: 99 99 102;
+    --color-text-subtle: 142 142 147;
 
-    /* Borders */
-    --color-border: 226 232 240;
-    --color-border-strong: 203 213 225;
+    /* Hairlines rather than heavy rules */
+    --color-border: 209 209 214;
+    --color-border-strong: 174 174 178;
 
-    /* Status colors */
-    --color-success: 22 163 74;
-    --color-success-bg: 240 253 244;
-    --color-warning: 202 138 4;
-    --color-warning-bg: 254 252 232;
-    --color-danger: 220 38 38;
-    --color-danger-bg: 254 242 242;
+    /* Status */
+    --color-success: 22 138 73;
+    --color-success-bg: 233 248 239;
+    --color-warning: 180 120 0;
+    --color-warning-bg: 255 247 230;
+    --color-danger: 200 32 38;
+    --color-danger-bg: 254 240 240;
+
+    /* Layered shadows: soft and close, not a hard drop */
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.05);
+    --shadow-md: 0 1px 3px rgb(0 0 0 / 0.07), 0 4px 12px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.08), 0 12px 32px rgb(0 0 0 / 0.1);
+
+    color-scheme: light;
+  }
+
+  /* Follow the system unless an explicit light theme is set. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-primary-50: 23 37 62;
+      --color-primary-100: 28 48 84;
+      --color-primary-200: 33 62 115;
+      --color-primary-300: 44 85 160;
+      --color-primary-400: 56 110 205;
+      --color-primary-500: 74 137 233;
+      --color-primary-600: 96 160 250;
+      --color-primary-700: 130 182 252;
+      --color-primary-800: 170 205 253;
+      --color-primary-900: 208 228 254;
+
+      --color-bg: 0 0 0;
+      --color-bg-subtle: 20 20 22;
+      --color-bg-muted: 44 44 46;
+      --color-bg-elevated: 28 28 30;
+
+      --color-text: 245 245 247;
+      --color-text-muted: 174 174 178;
+      --color-text-subtle: 128 128 134;
+
+      --color-border: 58 58 60;
+      --color-border-strong: 84 84 88;
+
+      --color-success: 48 209 88;
+      --color-success-bg: 20 48 30;
+      --color-warning: 255 214 10;
+      --color-warning-bg: 51 43 8;
+      --color-danger: 255 105 97;
+      --color-danger-bg: 56 24 24;
+
+      --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+      --shadow-md: 0 1px 3px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.4);
+      --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.6), 0 12px 32px rgb(0 0 0 / 0.5);
+
+      color-scheme: dark;
+    }
+  }
+
+  /* An explicit choice always wins over the system preference. */
+  :root[data-theme="dark"] {
+    --color-primary-50: 23 37 62;
+    --color-primary-100: 28 48 84;
+    --color-primary-200: 33 62 115;
+    --color-primary-300: 44 85 160;
+    --color-primary-400: 56 110 205;
+    --color-primary-500: 74 137 233;
+    --color-primary-600: 96 160 250;
+    --color-primary-700: 130 182 252;
+    --color-primary-800: 170 205 253;
+    --color-primary-900: 208 228 254;
+
+    --color-bg: 0 0 0;
+    --color-bg-subtle: 20 20 22;
+    --color-bg-muted: 44 44 46;
+    --color-bg-elevated: 28 28 30;
+
+    --color-text: 245 245 247;
+    --color-text-muted: 174 174 178;
+    --color-text-subtle: 128 128 134;
+
+    --color-border: 58 58 60;
+    --color-border-strong: 84 84 88;
+
+    --color-success: 48 209 88;
+    --color-success-bg: 20 48 30;
+    --color-warning: 255 214 10;
+    --color-warning-bg: 51 43 8;
+    --color-danger: 255 105 97;
+    --color-danger-bg: 56 24 24;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 1px 3px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.6), 0 12px 32px rgb(0 0 0 / 0.5);
+
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-bg text-text;
+    @apply bg-bg text-text antialiased;
+    /* 17px base, matching iOS body text rather than the 16px web default. */
+    font-size: 17px;
+    line-height: 1.5;
+    letter-spacing: -0.011em;
+  }
+
+  /* Tighter tracking as type gets larger, the way SF Pro Display does. */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.021em;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-bg;
+  }
+
+  /* Respect the system setting - animation here is decoration, never
+     the only signal that something happened. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow: var(--shadow-sm);
+  }
+  .shadow-raised {
+    box-shadow: var(--shadow-md);
+  }
+  .shadow-overlay {
+    box-shadow: var(--shadow-lg);
   }
 }

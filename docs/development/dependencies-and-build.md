@@ -1,35 +1,46 @@
 # Backend Dependencies & Build Notes
 
-## ML / LLM strategy: Ollama over in-process torch
+## NLP strategy: in-process spaCy, no LLM and no model server
 
-The backend delegates **embeddings and LLM inference to the Ollama container**
-over HTTP (via `httpx`), and talks to **ChromaDB as an HTTP client**. It does
-not run models in-process.
+The authorship engine runs **in the FastAPI process**. There is no Ollama
+container, no ChromaDB, no LangChain and no LLM of any kind - earlier
+versions of this document described that design, which was never built and
+has since been ruled out.
 
-**Why:** the default `torch` wheel bundles ~2GB of CUDA runtime that the
-CPU-only `python:3.11-slim` image can't use. Installing it (plus
-`transformers` / `sentence-transformers`) was the main cause of the
-multi-thousand-second backend image build. As of this writing,
-`embedding_service.py`, `qwen_client.py`, `langchain_pipeline.py`, and
-`retrieval_service.py` are unimplemented stubs, so nothing depended on those
-packages yet.
+What is actually used:
+
+- **spaCy `en_core_web_sm`** for POS tags, dependency parse and morphology.
+- **pyspellchecker** (dependency-free) for dictionary lookups.
+- **pyphen** for syllable counts.
+- **pypdf** / **python-docx** for document text extraction.
+
+All are pure Python or ship prebuilt wheels. Nothing downloads a model at
+runtime: `en_core_web_sm` is pinned in `requirements.txt` as a wheel URL, so
+the image is self-contained and works offline.
 
 ### Rules for `backend/requirements.txt`
 
-- **Do not** add `torch`, `transformers`, or `sentence-transformers` — use the
-  Ollama service for embeddings and inference.
-- Use **`chromadb-client`**, not the full `chromadb` package. The backend only
-  talks to the Chroma *service* over HTTP; the full package drags in
-  `onnxruntime` + native `hnswlib` builds that add minutes to the image build.
-- Keep the `chromadb-client` pin in sync with the `chromadb/chroma` image tag
-  in `docker-compose.yml` (both currently `0.5.23`) to avoid client/server
-  protocol drift.
-- If in-process local embeddings are ever genuinely required, install the
-  CPU-only wheels instead of the default CUDA ones:
-  ```
-  pip install --extra-index-url https://download.pytorch.org/whl/cpu \
-      torch==2.3.0 sentence-transformers==3.0.1
-  ```
+- **Do not** add `torch`, `transformers` or `sentence-transformers`. The
+  default `torch` wheel bundles ~2GB of CUDA runtime a CPU-only
+  `python:3.11-slim` image cannot use, and it was the main cause of
+  multi-thousand-second image builds.
+- **Do not** add `textstat`. It pulls in `nltk` plus four transitive
+  dependencies, and some of its code paths expect corpora to be
+  downloadable at runtime, which breaks the offline guarantee. `pyphen` is
+  used directly instead and the readability formulas are implemented in
+  `ai/features/discourse.py`.
+- **Do not** add `language_tool_python`. It requires a JVM and a ~200MB
+  download.
+- **Keep `spacy`, `thinc` and `blis` pinned together.** They must all
+  resolve to prebuilt wheels on linux aarch64 (for an ARM host such as
+  Oracle Ampere). spaCy 3.8.16 pins `thinc>=8.3.12,<8.4.0`, and 8.3.13 is
+  the highest release in that range with aarch64 wheels - `thinc`'s own
+  latest release publishes none, so an unpinned resolver would drop an ARM
+  build into a source compile needing `build-essential`.
+
+`fastembed` and its ONNX runtime were removed along with the embedding-based
+scorer. That model was semantic, so it measured what an essay was *about*
+rather than who wrote it.
 
 ## Build speed
 
@@ -45,10 +56,10 @@ packages yet.
 disk usage only grows. Use the Makefile targets:
 
 - `make prune` — safe: stops containers, drops dangling images + build cache.
-  Keeps named volumes (DB, vector store, Ollama models). Next build is slower
+  Keeps named volumes (the Postgres data directory). Next build is slower
   since the cache is gone.
-- `make prune-all` — destructive: also removes named volumes (wipes DB / vector
-  store / Ollama models) and all unused images. Clean-slate only.
+- `make prune-all` — destructive: also removes named volumes (wipes the
+  database) and all unused images. Clean-slate only.
 
 ## CI/CD image tags: GHCR requires lowercase
 

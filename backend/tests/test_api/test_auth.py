@@ -1,41 +1,4 @@
-from collections.abc import Generator
-
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
-
-import models  # noqa: F401 - registers all mapped models on Base.metadata
-from database.connection import get_db
-from main import app
-from models.base import Base
-
-
-@pytest.fixture()
-def client() -> Generator[TestClient, None, None]:
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine)
-    session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    def override_get_db() -> Generator[Session, None, None]:
-        db = session_factory()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.pop(get_db, None)
-        Base.metadata.drop_all(engine)
-        engine.dispose()
 
 
 def _register(client: TestClient, email: str = "ada@example.com") -> dict:

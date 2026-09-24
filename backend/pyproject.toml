@@ -4,9 +4,17 @@ target-version = ["py311"]
 
 [tool.ruff]
 line-length = 88
+exclude = ["database/migrations"]
+
+[tool.ruff.lint]
 select = ["E", "F", "I"]
 ignore = []
-exclude = ["database/migrations"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test fixtures hold multi-sentence prose samples. Hard-wrapping them would
+# make the writing-style differences they exist to demonstrate unreadable.
+"tests/test_ai/conftest.py" = ["E501"]
+"tests/conftest.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"

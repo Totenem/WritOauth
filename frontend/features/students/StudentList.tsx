@@ -1,6 +1,16 @@
 "use client";
 
-import { Card, Spinner } from "@/components";
+import { useState } from "react";
+
+import {
+  Alert,
+  Button,
+  EmptyState,
+  Modal,
+  SkeletonBar,
+  SkeletonGroup,
+  useToast,
+} from "@/components";
 import { useDeleteStudent, useStudents } from "@/hooks/useStudents";
 import type { Student } from "@/types";
 import { getApiErrorMessage } from "@/utils/apiError";
@@ -10,47 +20,45 @@ export default function StudentList() {
   const { data: students, isPending, isError, error } = useStudents();
   const deleteStudent = useDeleteStudent();
 
-  const handleDelete = (student: Student) => {
-    if (!window.confirm(`Delete "${student.name}"? This cannot be undone.`)) {
-      return;
-    }
-    deleteStudent.mutate(student.id);
+  const { toast } = useToast();
+  const [pendingDelete, setPendingDelete] = useState<Student | null>(null);
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    const name = pendingDelete.name;
+    deleteStudent.mutate(pendingDelete.id, {
+      onSuccess: () => toast(`Deleted ${name}`),
+    });
+    setPendingDelete(null);
   };
 
   if (isPending) {
     return (
-      <div className="flex justify-center py-8">
-        <Spinner />
-      </div>
+      <SkeletonGroup className="space-y-3">
+        {[0, 1, 2].map((row) => (
+          <SkeletonBar key={row} className="h-20 w-full rounded-xl" />
+        ))}
+      </SkeletonGroup>
     );
   }
 
   if (isError) {
-    return (
-      <Card>
-        <p role="alert" className="text-sm text-danger">
-          {getApiErrorMessage(error)}
-        </p>
-      </Card>
-    );
+    return <Alert variant="danger">{getApiErrorMessage(error)}</Alert>;
   }
 
   if (students.length === 0) {
     return (
-      <Card>
-        <p className="text-sm text-text-muted">
-          No students yet. Add your first student to get started.
-        </p>
-      </Card>
+      <EmptyState
+        title="No students yet"
+        description="Add a student, then give the system a few writing samples you know are theirs."
+      />
     );
   }
 
   return (
     <div className="space-y-3">
       {deleteStudent.isError ? (
-        <p role="alert" className="text-sm text-danger">
-          {getApiErrorMessage(deleteStudent.error)}
-        </p>
+        <Alert variant="danger">{getApiErrorMessage(deleteStudent.error)}</Alert>
       ) : null}
 
       <ul className="space-y-3">
@@ -58,12 +66,29 @@ export default function StudentList() {
           <li key={student.id}>
             <StudentCard
               student={student}
-              onDelete={handleDelete}
+              onDelete={setPendingDelete}
               isDeleting={deleteStudent.isPending && deleteStudent.variables === student.id}
             />
           </li>
         ))}
       </ul>
+
+      <Modal
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        title={`Delete ${pendingDelete?.name ?? ""}?`}
+        description="This also removes their papers and any analyses. It can't be undone."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPendingDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </>
+        }
+      />
     </div>
   );
 }

@@ -29,6 +29,7 @@ const config: Config = {
           DEFAULT: withVar("--color-bg"),
           subtle: withVar("--color-bg-subtle"),
           muted: withVar("--color-bg-muted"),
+          elevated: withVar("--color-bg-elevated"),
         },
         text: {
           DEFAULT: withVar("--color-text"),
@@ -51,6 +52,70 @@ const config: Config = {
           DEFAULT: withVar("--color-danger"),
           bg: withVar("--color-danger-bg"),
         },
+      },
+      fontFamily: {
+        // System stack: SF Pro on Apple platforms, the platform's own UI
+        // face everywhere else. No webfont, so no flash and no download.
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "SF Pro Text",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
+      },
+      fontSize: {
+        // Apple's type ramp, with line heights and tracking baked in.
+        caption: ["0.75rem", { lineHeight: "1rem", letterSpacing: "0" }],
+        footnote: ["0.8125rem", { lineHeight: "1.125rem", letterSpacing: "-0.006em" }],
+        subhead: ["0.9375rem", { lineHeight: "1.25rem", letterSpacing: "-0.01em" }],
+        body: ["1.0625rem", { lineHeight: "1.5rem", letterSpacing: "-0.011em" }],
+        headline: ["1.0625rem", { lineHeight: "1.375rem", letterSpacing: "-0.011em" }],
+        title3: ["1.25rem", { lineHeight: "1.5rem", letterSpacing: "-0.015em" }],
+        title2: ["1.375rem", { lineHeight: "1.75rem", letterSpacing: "-0.018em" }],
+        title1: ["1.75rem", { lineHeight: "2.125rem", letterSpacing: "-0.021em" }],
+        largeTitle: ["2.125rem", { lineHeight: "2.5rem", letterSpacing: "-0.024em" }],
+      },
+      borderRadius: {
+        // Continuous-corner feel: larger radii than the web default.
+        lg: "0.75rem",
+        xl: "1rem",
+        "2xl": "1.25rem",
+      },
+      spacing: {
+        // 8pt rhythm additions.
+        18: "4.5rem",
+        22: "5.5rem",
+      },
+      transitionTimingFunction: {
+        // Apple's standard ease - quick out, gentle settle.
+        apple: "cubic-bezier(0.32, 0.72, 0, 1)",
+      },
+      keyframes: {
+        shimmer: {
+          "100%": { transform: "translateX(100%)" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.96) translateY(4px)" },
+          to: { opacity: "1", transform: "scale(1) translateY(0)" },
+        },
+        "slide-up": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        shimmer: "shimmer 1.8s infinite",
+        "fade-in": "fade-in 0.2s cubic-bezier(0.32, 0.72, 0, 1)",
+        "scale-in": "scale-in 0.22s cubic-bezier(0.32, 0.72, 0, 1)",
+        "slide-up": "slide-up 0.24s cubic-bezier(0.32, 0.72, 0, 1)",
       },
     },
   },

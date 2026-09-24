@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -69,30 +69,48 @@ describe("StudentList", () => {
     expect(screen.getByText("Not authenticated")).toBeDefined();
   });
 
-  it("deletes a student after the confirm dialog is accepted", async () => {
+  it("asks for confirmation before deleting", async () => {
     vi.mocked(studentService.getStudents).mockResolvedValue(mockStudents);
-    vi.mocked(studentService.deleteStudent).mockResolvedValue(undefined);
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
     const user = userEvent.setup();
 
     renderStudentList();
     await screen.findByText("Ana Cruz");
 
     await user.click(screen.getAllByRole("button", { name: "Delete" })[0]);
+
+    // A dialog, not window.confirm: it can be styled, focus-trapped and
+    // tested without stubbing a global.
+    expect(screen.getByRole("dialog")).toBeDefined();
+    expect(studentService.deleteStudent).not.toHaveBeenCalled();
+  });
+
+  it("deletes once the dialog is confirmed", async () => {
+    vi.mocked(studentService.getStudents).mockResolvedValue(mockStudents);
+    vi.mocked(studentService.deleteStudent).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderStudentList();
+    await screen.findByText("Ana Cruz");
+    await user.click(screen.getAllByRole("button", { name: "Delete" })[0]);
+
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" })
+    );
 
     await waitFor(() => expect(studentService.deleteStudent).toHaveBeenCalledWith(1));
   });
 
-  it("does not delete when the confirm dialog is dismissed", async () => {
+  it("does not delete when the dialog is cancelled", async () => {
     vi.mocked(studentService.getStudents).mockResolvedValue(mockStudents);
-    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
     const user = userEvent.setup();
 
     renderStudentList();
     await screen.findByText("Ana Cruz");
-
     await user.click(screen.getAllByRole("button", { name: "Delete" })[0]);
 
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(studentService.deleteStudent).not.toHaveBeenCalled();
   });
 });

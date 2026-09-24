@@ -50,18 +50,20 @@ describe("BaselineUploadForm", () => {
       student_id: 1,
       subject_id: 5,
       type: "baseline",
+      source_format: "paste" as const,
       created_at: "2024-01-01T00:00:00Z",
       analysis_id: null,
     });
 
     renderWithClient(<BaselineUploadForm />);
-    await fillAndSubmit("Upload baseline");
+    await fillAndSubmit("Add baseline");
 
     await waitFor(() =>
       expect(paperService.uploadBaseline).toHaveBeenCalledWith({
         student_id: 1,
         subject_id: 5,
         content: "An essay about the war.",
+        source_format: "paste",
       })
     );
     expect(await screen.findByRole("status")).toBeDefined();
@@ -77,7 +79,7 @@ describe("BaselineUploadForm", () => {
     });
 
     renderWithClient(<BaselineUploadForm />);
-    await fillAndSubmit("Upload baseline");
+    await fillAndSubmit("Add baseline");
 
     expect(
       await screen.findByText("Student 1 or subject 5 does not exist")
@@ -99,12 +101,13 @@ describe("AnalysisUploadForm", () => {
       student_id: 1,
       subject_id: 5,
       type: "submission",
+      source_format: "paste" as const,
       created_at: "2024-01-02T00:00:00Z",
       analysis_id: 42,
     });
 
     renderWithClient(<AnalysisUploadForm />);
-    await fillAndSubmit("Upload for analysis");
+    await fillAndSubmit("Check this submission");
 
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/analysis/42"));
   });
@@ -115,17 +118,20 @@ describe("AnalysisUploadForm", () => {
       student_id: 1,
       subject_id: 5,
       type: "submission",
+      source_format: "paste" as const,
       created_at: "2024-01-02T00:00:00Z",
       analysis_id: null,
     });
 
     renderWithClient(<AnalysisUploadForm />);
-    await fillAndSubmit("Upload for analysis");
+    await fillAndSubmit("Check this submission");
 
-    expect(await screen.findByText(/no baseline\s+on file yet/i)).toBeDefined();
+    expect(
+      await screen.findByText(/no baseline on file for this student/i)
+    ).toBeDefined();
     expect(pushMock).not.toHaveBeenCalled();
     expect(
-      screen.getByRole("link", { name: "Upload a baseline paper first" }).getAttribute("href")
+      screen.getByRole("link", { name: "Add a baseline first" }).getAttribute("href")
     ).toBe("/papers/baseline");
   });
 
@@ -136,7 +142,7 @@ describe("AnalysisUploadForm", () => {
     });
 
     renderWithClient(<AnalysisUploadForm />);
-    await fillAndSubmit("Upload for analysis");
+    await fillAndSubmit("Check this submission");
 
     expect(
       await screen.findByText("Student 999 or subject 5 does not exist")

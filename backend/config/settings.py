@@ -15,9 +15,12 @@ class Settings(BaseSettings):
     # The app fails loudly at startup if JWT_SECRET_KEY isn't set.
     jwt_secret: str = Field(validation_alias="JWT_SECRET_KEY")
     jwt_algorithm: str = "HS256"
-    embedding_model: str = "BAAI/bge-small-en-v1.5"
     # 0-100 consistency-score threshold below which a submission is flagged.
     analysis_flag_threshold: float = 75.0
+    # Largest document accepted by /api/papers/extract. Student essays
+    # are tiny; this cap exists to stop a large upload occupying a
+    # request worker, not because bigger files are meaningful.
+    max_upload_bytes: int = 10 * 1024 * 1024
     # Comma-separated list of allowed CORS origins (not a secret - a normal
     # local-dev default is fine). e.g. "https://app.example.com,https://foo.com"
     cors_origins: str = "http://localhost:3000"

@@ -1,13 +1,16 @@
 from sqlalchemy.orm import Session
 
 from application.repositories.student_repository import StudentRepository
+from models.teacher import Teacher
 from schemas.student import StudentCreate, StudentUpdate
 
 
-def test_get_all_returns_empty_list_when_no_students(db_session: Session) -> None:
+def test_get_all_returns_empty_list_when_no_students(
+    db_session: Session, teacher: Teacher
+) -> None:
     repo = StudentRepository(db_session)
 
-    assert repo.get_all() == []
+    assert repo.get_all(teacher.id) == []
 
 
 def test_get_by_id_returns_none_when_not_found(db_session: Session) -> None:
@@ -16,28 +19,44 @@ def test_get_by_id_returns_none_when_not_found(db_session: Session) -> None:
     assert repo.get_by_id(999) is None
 
 
-def test_create_persists_student(db_session: Session) -> None:
+def test_create_persists_student(db_session: Session, teacher: Teacher) -> None:
     repo = StudentRepository(db_session)
 
-    student = repo.create(StudentCreate(name="Ada Lovelace"))
+    student = repo.create(teacher.id, StudentCreate(name="Ada Lovelace"))
 
     assert student.id is not None
     assert student.name == "Ada Lovelace"
+    assert student.teacher_id == teacher.id
 
 
-def test_get_all_returns_created_students(db_session: Session) -> None:
+def test_get_all_returns_created_students(
+    db_session: Session, teacher: Teacher
+) -> None:
     repo = StudentRepository(db_session)
-    repo.create(StudentCreate(name="Ada Lovelace"))
-    repo.create(StudentCreate(name="Grace Hopper"))
+    repo.create(teacher.id, StudentCreate(name="Ada Lovelace"))
+    repo.create(teacher.id, StudentCreate(name="Grace Hopper"))
 
-    students = repo.get_all()
+    students = repo.get_all(teacher.id)
 
     assert {s.name for s in students} == {"Ada Lovelace", "Grace Hopper"}
 
 
-def test_get_by_id_returns_created_student(db_session: Session) -> None:
+def test_get_all_excludes_other_teachers_students(
+    db_session: Session, teacher: Teacher, other_teacher: Teacher
+) -> None:
     repo = StudentRepository(db_session)
-    created = repo.create(StudentCreate(name="Ada Lovelace"))
+    repo.create(teacher.id, StudentCreate(name="Ada Lovelace"))
+    repo.create(other_teacher.id, StudentCreate(name="Grace Hopper"))
+
+    assert [s.name for s in repo.get_all(teacher.id)] == ["Ada Lovelace"]
+    assert [s.name for s in repo.get_all(other_teacher.id)] == ["Grace Hopper"]
+
+
+def test_get_by_id_returns_created_student(
+    db_session: Session, teacher: Teacher
+) -> None:
+    repo = StudentRepository(db_session)
+    created = repo.create(teacher.id, StudentCreate(name="Ada Lovelace"))
 
     found = repo.get_by_id(created.id)
 
@@ -45,9 +64,11 @@ def test_get_by_id_returns_created_student(db_session: Session) -> None:
     assert found.name == "Ada Lovelace"
 
 
-def test_update_modifies_and_returns_student(db_session: Session) -> None:
+def test_update_modifies_and_returns_student(
+    db_session: Session, teacher: Teacher
+) -> None:
     repo = StudentRepository(db_session)
-    created = repo.create(StudentCreate(name="Ada Lovelace"))
+    created = repo.create(teacher.id, StudentCreate(name="Ada Lovelace"))
 
     updated = repo.update(created.id, StudentUpdate(name="Ada Byron"))
 
@@ -64,9 +85,11 @@ def test_update_returns_none_when_not_found(db_session: Session) -> None:
     assert repo.update(999, StudentUpdate(name="Ada Byron")) is None
 
 
-def test_delete_removes_student_and_returns_true(db_session: Session) -> None:
+def test_delete_removes_student_and_returns_true(
+    db_session: Session, teacher: Teacher
+) -> None:
     repo = StudentRepository(db_session)
-    created = repo.create(StudentCreate(name="Ada Lovelace"))
+    created = repo.create(teacher.id, StudentCreate(name="Ada Lovelace"))
 
     assert repo.delete(created.id) is True
     assert repo.get_by_id(created.id) is None

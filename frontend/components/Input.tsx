@@ -33,7 +33,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         ref={ref}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${name}-error` : undefined}
-        className={`block w-full rounded-md border bg-white px-3 py-2 text-sm text-text placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+        className={`block w-full rounded-lg border bg-bg-elevated px-3 py-2 text-subhead text-text placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary-500 ${
           error ? "border-danger" : "border-border-strong"
         }`}
       />
