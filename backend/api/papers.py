@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from application.services.paper_service import (
@@ -7,10 +7,17 @@ from application.services.paper_service import (
     PaperNotFoundError,
     PaperService,
 )
+from config.settings import get_settings
 from database.connection import get_db
 from models.teacher import Teacher
-from schemas.paper import AnalysisPaperCreate, BaselinePaperCreate, PaperResponse
+from schemas.paper import (
+    AnalysisPaperCreate,
+    BaselinePaperCreate,
+    ExtractionResponse,
+    PaperResponse,
+)
 from utils.dependencies import get_current_teacher
+from utils.file_extraction import ExtractionError, extract_text
 
 router = APIRouter(prefix="/api/papers", tags=["papers"])
 
@@ -57,6 +64,41 @@ async def upload_for_analysis(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
         ) from exc
+
+
+@router.post("/extract", response_model=ExtractionResponse)
+async def extract_document(
+    file: UploadFile = File(...),
+    _current_teacher: Teacher = Depends(get_current_teacher),
+) -> ExtractionResponse:
+    """Pull plain text out of an uploaded PDF, Word or text file.
+
+    Deliberately separate from the upload endpoints rather than a multipart
+    variant of them. The teacher reviews (and can correct) the extracted
+    text before submitting it through `/baseline` or `/analyze`, so a bad
+    extraction never silently becomes a student's baseline profile. It also
+    leaves those endpoints and their contracts untouched.
+
+    Nothing is persisted here - the file is parsed in memory and discarded.
+    """
+    data = await file.read()
+    try:
+        result = extract_text(
+            file.filename or "", data, get_settings().max_upload_bytes
+        )
+    except ExtractionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+
+    return ExtractionResponse(
+        filename=result.filename,
+        source_format=result.source_format,
+        text=result.text,
+        word_count=result.word_count,
+        page_count=result.page_count,
+        warnings=result.warnings,
+    )
 
 
 @router.get("/{paper_id}", response_model=PaperResponse)

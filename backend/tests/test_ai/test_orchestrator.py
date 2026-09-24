@@ -211,3 +211,36 @@ def test_reanalysis_updates_rather_than_duplicates(
 
     assert first is not None and second is not None
     assert first.id == second.id
+
+
+def test_pdf_submission_against_pasted_baselines_ignores_typography(
+    db_session: Session, persona_a_baselines, persona_a_heldout
+) -> None:
+    """Curly quotes and spacing come from the editor, not the writer. A
+    student who pastes their baselines and then uploads a PDF must not be
+    penalised for changing tools - PDF extraction reliably alters exactly
+    those characters.
+    """
+    student_id, subject_id = _make_student_and_subject(db_session)
+    for text in persona_a_baselines:
+        _upload_baseline(db_session, student_id, subject_id, text)
+
+    paper = PaperRepository(db_session).create_submission(
+        AnalysisPaperCreate(
+            student_id=student_id,
+            subject_id=subject_id,
+            content=persona_a_heldout,
+            source_format="pdf",
+        )
+    )
+    result = _make_orchestrator().analyze_submission(paper, db_session)
+
+    assert result is not None
+    typography = [
+        feature
+        for feature in result.breakdown["profiles"]["mechanical"]["features"]
+        if feature["key"] in ("curly_quote_ratio", "double_space_after_period_ratio")
+    ]
+    assert typography, "expected typography features to be present"
+    assert all(not feature["available"] for feature in typography)
+    assert all("format" in feature["suppressed_reason"] for feature in typography)

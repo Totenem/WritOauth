@@ -40,6 +40,7 @@ class PaperRepository:
             subject_id=data.subject_id,
             type=paper_type,
             content=data.content,
+            source_format=data.source_format,
         )
         self.db.add(paper)
         try:

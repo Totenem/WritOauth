@@ -15,6 +15,10 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.9
+# Document text extraction for /api/papers/extract. Both are pure
+# Python with no native dependencies.
+pypdf==5.6.0
+python-docx==1.1.2
 
 # NLP stack for the authorship engine. Versions are pinned together
 # because they must all resolve to prebuilt wheels on linux aarch64
