@@ -51,6 +51,7 @@ describe("PaperDetail", () => {
     vi.mocked(paperService.getPaper).mockResolvedValue({
       ...basePaper,
       type: "baseline",
+      source_format: "paste" as const,
       analysis_id: null,
     });
 
@@ -66,6 +67,7 @@ describe("PaperDetail", () => {
     vi.mocked(paperService.getPaper).mockResolvedValue({
       ...basePaper,
       type: "submission",
+      source_format: "paste" as const,
       analysis_id: 42,
     });
 
@@ -79,6 +81,7 @@ describe("PaperDetail", () => {
     vi.mocked(paperService.getPaper).mockResolvedValue({
       ...basePaper,
       type: "submission",
+      source_format: "paste" as const,
       analysis_id: null,
     });
 
@@ -94,6 +97,7 @@ describe("PaperDetail", () => {
     vi.mocked(paperService.getPaper).mockResolvedValue({
       ...basePaper,
       type: "baseline",
+      source_format: "paste" as const,
       analysis_id: null,
     });
 

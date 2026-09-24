@@ -8,6 +8,7 @@ export { default as Spinner } from "./Spinner";
 export { default as Badge } from "./Badge";
 export { default as Navbar } from "./Navbar";
 export { default as Sidebar } from "./Sidebar";
+export { default as PageHeader } from "./PageHeader";
 export { default as Skeleton, SkeletonBar, SkeletonGroup } from "./Skeleton";
 export { default as EmptyState } from "./EmptyState";
 export { default as Alert } from "./Alert";

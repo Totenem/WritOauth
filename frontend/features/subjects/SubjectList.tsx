@@ -1,6 +1,16 @@
 "use client";
 
-import { Card, Spinner } from "@/components";
+import { useState } from "react";
+
+import {
+  Alert,
+  Button,
+  EmptyState,
+  Modal,
+  SkeletonBar,
+  SkeletonGroup,
+  useToast,
+} from "@/components";
 import { useDeleteSubject, useSubjects } from "@/hooks/useSubjects";
 import type { Subject } from "@/types";
 import { getApiErrorMessage } from "@/utils/apiError";
@@ -10,47 +20,45 @@ export default function SubjectList() {
   const { data: subjects, isPending, isError, error } = useSubjects();
   const deleteSubject = useDeleteSubject();
 
-  const handleDelete = (subject: Subject) => {
-    if (!window.confirm(`Delete "${subject.name}"? This cannot be undone.`)) {
-      return;
-    }
-    deleteSubject.mutate(subject.id);
+  const { toast } = useToast();
+  const [pendingDelete, setPendingDelete] = useState<Subject | null>(null);
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    const name = pendingDelete.name;
+    deleteSubject.mutate(pendingDelete.id, {
+      onSuccess: () => toast(`Deleted ${name}`),
+    });
+    setPendingDelete(null);
   };
 
   if (isPending) {
     return (
-      <div className="flex justify-center py-8">
-        <Spinner />
-      </div>
+      <SkeletonGroup className="space-y-3">
+        {[0, 1, 2].map((row) => (
+          <SkeletonBar key={row} className="h-20 w-full rounded-xl" />
+        ))}
+      </SkeletonGroup>
     );
   }
 
   if (isError) {
-    return (
-      <Card>
-        <p role="alert" className="text-sm text-danger">
-          {getApiErrorMessage(error)}
-        </p>
-      </Card>
-    );
+    return <Alert variant="danger">{getApiErrorMessage(error)}</Alert>;
   }
 
   if (subjects.length === 0) {
     return (
-      <Card>
-        <p className="text-sm text-text-muted">
-          No subjects yet. Add your first subject to get started.
-        </p>
-      </Card>
+      <EmptyState
+        title="No subjects yet"
+        description="Subjects group papers by class or course. Every paper is filed against one."
+      />
     );
   }
 
   return (
     <div className="space-y-3">
       {deleteSubject.isError ? (
-        <p role="alert" className="text-sm text-danger">
-          {getApiErrorMessage(deleteSubject.error)}
-        </p>
+        <Alert variant="danger">{getApiErrorMessage(deleteSubject.error)}</Alert>
       ) : null}
 
       <ul className="space-y-3">
@@ -58,12 +66,29 @@ export default function SubjectList() {
           <li key={subject.id}>
             <SubjectCard
               subject={subject}
-              onDelete={handleDelete}
+              onDelete={setPendingDelete}
               isDeleting={deleteSubject.isPending && deleteSubject.variables === subject.id}
             />
           </li>
         ))}
       </ul>
+
+      <Modal
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        title={`Delete ${pendingDelete?.name ?? ""}?`}
+        description="This also removes their papers and any analyses. It can't be undone."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPendingDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </>
+        }
+      />
     </div>
   );
 }

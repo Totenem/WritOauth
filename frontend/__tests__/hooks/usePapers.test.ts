@@ -24,6 +24,7 @@ const baselinePaper = {
   student_id: 1,
   subject_id: 1,
   type: "baseline" as const,
+  source_format: "paste" as const,
   created_at: "2024-01-01T00:00:00Z",
   analysis_id: null,
 };
@@ -33,6 +34,7 @@ const submissionPaper = {
   student_id: 1,
   subject_id: 1,
   type: "submission" as const,
+  source_format: "paste" as const,
   created_at: "2024-01-02T00:00:00Z",
   analysis_id: 7,
 };
