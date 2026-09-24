@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { LoginRequest } from "@/types";
+import type { LoginRequest, RegisterRequest } from "@/types";
 import * as authService from "@/services/auth.service";
 import { clearToken, getToken } from "@/utils/tokenStorage";
 
@@ -39,6 +39,19 @@ export function useAuth() {
     },
   });
 
+  // Registration itself returns no token (see backend/api/auth.py), so log
+  // in with the same credentials right after to give a seamless "register
+  // and land on the dashboard" flow instead of bouncing back to /login.
+  const registerMutation = useMutation({
+    mutationFn: async (data: RegisterRequest) => {
+      await authService.register(data);
+      return authService.login({ email: data.email, password: data.password });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AUTH_ME_QUERY_KEY });
+    },
+  });
+
   const logout = useCallback(async () => {
     await authService.logout();
     queryClient.removeQueries({ queryKey: AUTH_ME_QUERY_KEY });
@@ -54,6 +67,9 @@ export function useAuth() {
     login: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
     loginError: loginMutation.error,
+    register: registerMutation.mutateAsync,
+    isRegistering: registerMutation.isPending,
+    registerError: registerMutation.error,
     logout,
   };
 }

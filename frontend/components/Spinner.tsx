@@ -1,9 +1,20 @@
-export default function Spinner() {
+interface SpinnerProps {
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}
+
+const sizeClasses: Record<NonNullable<SpinnerProps["size"]>, string> = {
+  sm: "h-4 w-4 border-2",
+  md: "h-6 w-6 border-2",
+  lg: "h-8 w-8 border-[3px]",
+};
+
+export default function Spinner({ size = "md", className = "" }: SpinnerProps) {
   return (
     <div
       role="status"
       aria-label="Loading"
-      className="h-6 w-6 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600"
+      className={`animate-spin rounded-full border-primary-200 border-t-primary-600 ${sizeClasses[size]} ${className}`}
     />
   );
 }

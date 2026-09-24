@@ -1,6 +1,11 @@
-import type { LoginRequest, Teacher, TokenResponse } from "@/types";
+import type { LoginRequest, RegisterRequest, Teacher, TokenResponse } from "@/types";
 import { clearToken, saveToken } from "@/utils/tokenStorage";
 import api from "./api";
+
+export async function register(data: RegisterRequest): Promise<Teacher> {
+  const { data: teacher } = await api.post<Teacher>("/api/auth/register", data);
+  return teacher;
+}
 
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
   const { data } = await api.post<TokenResponse>("/api/auth/login", credentials);

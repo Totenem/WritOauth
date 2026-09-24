@@ -34,7 +34,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
         ref={ref}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={`block w-full rounded-md border bg-white px-3 py-2 text-sm text-text placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+        className={`block w-full rounded-lg border bg-bg-elevated px-3 py-2 text-subhead text-text placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary-500 ${
           error ? "border-danger" : "border-border-strong"
         }`}
       />
@@ -43,7 +43,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
           {error}
         </p>
       ) : hint ? (
-        <p id={`${name}-hint`} className="mt-1 text-sm text-text-subtle">
+        <p id={`${name}-hint`} className="mt-1 text-subhead text-text-subtle">
           {hint}
         </p>
       ) : null}
