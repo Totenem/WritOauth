@@ -53,7 +53,7 @@ describe("PaperUploadForm", () => {
 
     renderForm();
 
-    expect(await screen.findByText("Add a student before uploading a paper.")).toBeDefined();
+    expect(await screen.findByText("Add a student first")).toBeDefined();
     expect(screen.queryByRole("button", { name: "Upload" })).toBeNull();
   });
 
@@ -62,7 +62,7 @@ describe("PaperUploadForm", () => {
 
     renderForm();
 
-    expect(await screen.findByText("Add a subject before uploading a paper.")).toBeDefined();
+    expect(await screen.findByText("Add a subject first")).toBeDefined();
   });
 
   it("asks for both when neither exists", async () => {
@@ -72,7 +72,7 @@ describe("PaperUploadForm", () => {
     renderForm();
 
     expect(
-      await screen.findByText("Add a student and a subject before uploading a paper.")
+      await screen.findByText("Add a student and a subject first")
     ).toBeDefined();
   });
 
@@ -106,6 +106,9 @@ describe("PaperUploadForm", () => {
         student_id: 1,
         subject_id: 5,
         content: "An essay about history.",
+        // Pasted text is recorded as such, so the engine knows not to
+        // compare typography against a file-extracted baseline.
+        source_format: "paste",
       })
     );
   });

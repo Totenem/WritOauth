@@ -1,35 +1,36 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
+
+import { Alert, useToast } from "@/components";
 import { useUploadBaseline } from "@/hooks/usePapers";
 import type { Paper } from "@/types";
 import PaperUploadForm from "./PaperUploadForm";
 
 export default function BaselineUploadForm() {
   const uploadBaseline = useUploadBaseline();
+  const { toast } = useToast();
   const [uploaded, setUploaded] = useState<Paper | null>(null);
 
   return (
     <div className="space-y-4">
       {uploaded ? (
-        <div
-          role="status"
-          className="rounded-md border border-border bg-success-bg p-3 text-sm text-success"
-        >
-          Baseline uploaded. This student&apos;s writing profile has been updated.{" "}
+        <Alert variant="success">
+          Baseline added. This student&apos;s writing profile has been updated.{" "}
           <Link href={`/papers/${uploaded.id}`} className="font-medium underline">
             View paper
           </Link>
-        </div>
+        </Alert>
       ) : null}
 
       <PaperUploadForm
-        submitLabel="Upload baseline"
-        contentHint="Use a piece of writing you're confident the student wrote themselves. Longer samples give a better profile."
+        submitLabel="Add baseline"
+        contentHint="Use writing you're confident the student produced themselves. Three or more samples, on different topics, give the strongest profile."
         onSubmit={async (values) => {
           const paper = await uploadBaseline.mutateAsync(values);
           setUploaded(paper);
+          toast("Baseline added");
           return paper;
         }}
         isSubmitting={uploadBaseline.isPending}

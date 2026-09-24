@@ -2,9 +2,12 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { UploadAnalysisRequest, UploadBaselineRequest } from "@/types";
+import type { PaperListFilters } from "@/services/paper.service";
 import * as paperService from "@/services/paper.service";
 
 export const paperQueryKey = (id: number) => ["papers", id] as const;
+export const papersListQueryKey = (filters: PaperListFilters = {}) =>
+  ["papers", "list", filters] as const;
 
 /**
  * A single paper. There is no list endpoint on the backend (`/api/papers`
@@ -39,5 +42,26 @@ export function useUploadBaseline() {
 export function useUploadForAnalysis() {
   return useMutation({
     mutationFn: (payload: UploadAnalysisRequest) => paperService.uploadForAnalysis(payload),
+  });
+}
+
+/** The caller's own papers, optionally filtered by student, subject or type. */
+export function usePapersList(filters: PaperListFilters = {}, enabled = true) {
+  return useQuery({
+    queryKey: papersListQueryKey(filters),
+    queryFn: () => paperService.listPapers(filters),
+    enabled,
+  });
+}
+
+/**
+ * Extracts text from an uploaded document.
+ *
+ * A mutation rather than a query: it has no cacheable identity, and the
+ * teacher reviews the result before anything is persisted.
+ */
+export function useExtractDocument() {
+  return useMutation({
+    mutationFn: (file: File) => paperService.extractDocument(file),
   });
 }

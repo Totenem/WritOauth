@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from models.base import Base
 
 if TYPE_CHECKING:
+    from models.student import Student
     from models.subject import Subject
 
 
@@ -23,4 +24,7 @@ class Teacher(Base):
 
     subjects: Mapped[list["Subject"]] = relationship(
         "Subject", back_populates="teacher"
+    )
+    students: Mapped[list["Student"]] = relationship(
+        "Student", back_populates="teacher"
     )

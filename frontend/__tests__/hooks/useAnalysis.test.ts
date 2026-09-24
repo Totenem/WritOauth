@@ -4,6 +4,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAnalysis, useSubmitFeedback } from "@/hooks/useAnalysis";
 import * as analysisService from "@/services/analysis.service";
+import { makeAnalysis } from "../fixtures/analysis";
 
 vi.mock("@/services/analysis.service");
 
@@ -19,20 +20,11 @@ function createWrapper() {
   };
 }
 
-const mockAnalysis = {
-  id: 1,
+const mockAnalysis = makeAnalysis({
   paper_id: 2,
   consistency_score: 97.7468,
   confidence_level: 0.333333,
-  breakdown: {
-    vocabulary: 94.7,
-    sentence_structure: 88.6,
-    grammar: 92.4,
-    readability: 91.8,
-    style: 97.7,
-  },
-  explanation: "This submission is 98% consistent with the student's baseline.",
-};
+});
 
 describe("useAnalysis", () => {
   beforeEach(() => {

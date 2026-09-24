@@ -18,7 +18,9 @@ def _make_submission_paper_id(db_session: Session) -> int:
             name="Ada Lovelace", email="ada@example.com", password="secret123"
         )
     )
-    student = StudentRepository(db_session).create(StudentCreate(name="Grace Hopper"))
+    student = StudentRepository(db_session).create(
+        teacher.id, StudentCreate(name="Grace Hopper")
+    )
     subject = SubjectRepository(db_session).create(
         teacher.id, SubjectCreate(name="Algebra")
     )

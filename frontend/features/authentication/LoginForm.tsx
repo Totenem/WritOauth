@@ -2,6 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { Button, Card, Input } from "@/components";
 import { getApiErrorMessage } from "@/utils/apiError";
@@ -65,6 +66,13 @@ export default function LoginForm() {
         <Button type="submit" disabled={isLoggingIn} className="w-full">
           {isLoggingIn ? "Signing in..." : "Sign in"}
         </Button>
+
+        <p className="text-center text-sm text-text-subtle">
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="text-primary-700 hover:underline">
+            Create one
+          </Link>
+        </p>
       </form>
     </Card>
   );

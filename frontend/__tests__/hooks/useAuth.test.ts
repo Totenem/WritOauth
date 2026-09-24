@@ -96,4 +96,60 @@ describe("useAuth", () => {
 
     expect(authService.logout).toHaveBeenCalled();
   });
+
+  it("registers then logs in with the same credentials, flipping isAuthenticated", async () => {
+    vi.mocked(authService.register).mockResolvedValue(mockTeacher);
+    vi.mocked(authService.login).mockResolvedValue({
+      access_token: "tok123",
+      token_type: "bearer",
+    });
+    vi.mocked(authService.getCurrentTeacher).mockResolvedValue(mockTeacher);
+
+    const { result, rerender } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await result.current.register({
+        name: "Jane Teacher",
+        email: "jane@example.com",
+        password: "secret123",
+      });
+    });
+
+    expect(authService.register).toHaveBeenCalledWith({
+      name: "Jane Teacher",
+      email: "jane@example.com",
+      password: "secret123",
+    });
+    expect(authService.login).toHaveBeenCalledWith({
+      email: "jane@example.com",
+      password: "secret123",
+    });
+
+    vi.mocked(tokenStorage.getToken).mockReturnValue("tok123");
+    rerender();
+
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+  });
+
+  it("surfaces an error and does not call login when registration fails", async () => {
+    vi.mocked(authService.register).mockRejectedValue(
+      new Error("A teacher with email 'jane@example.com' already exists")
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+
+    await act(async () => {
+      await expect(
+        result.current.register({
+          name: "Jane Teacher",
+          email: "jane@example.com",
+          password: "secret123",
+        })
+      ).rejects.toThrow("already exists");
+    });
+
+    await waitFor(() => expect(result.current.registerError).toBeTruthy());
+    expect(authService.login).not.toHaveBeenCalled();
+    expect(result.current.isAuthenticated).toBe(false);
+  });
 });
