@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 
-from ai.embedding_service import EmbeddingService
 from ai.explanation_service import ExplanationService
 from ai.fingerprint_service import FingerprintService
 from ai.orchestrator import AIOrchestrator
@@ -20,7 +19,6 @@ from schemas.paper import AnalysisPaperCreate, BaselinePaperCreate, PaperRespons
 def _build_default_orchestrator() -> AIOrchestrator:
     return AIOrchestrator(
         fingerprint=FingerprintService(),
-        embedding=EmbeddingService(),
         retrieval=RetrievalService(),
         scoring=ScoringService(),
         explanation=ExplanationService(),

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Text, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -34,6 +34,13 @@ class Paper(Base):
         Enum("baseline", "submission", name="paper_type"), nullable=False
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    # How the text arrived: "paste", "pdf", "docx", "txt". Typography
+    # features (curly quotes, spacing) describe the editor rather than the
+    # author, so scoring suppresses them when a submission's format differs
+    # from the baselines'.
+    source_format: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default="paste", default="paste"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     student: Mapped["Student"] = relationship("Student", back_populates="papers")

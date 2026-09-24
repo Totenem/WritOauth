@@ -1,7 +1,6 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from ai.embedding_service import EmbeddingService
 from ai.explanation_service import ExplanationService
 from ai.fingerprint_service import FingerprintService
 from ai.orchestrator import AIOrchestrator
@@ -28,7 +27,6 @@ from schemas.teacher import TeacherCreate
 def _make_orchestrator() -> AIOrchestrator:
     return AIOrchestrator(
         fingerprint=FingerprintService(),
-        embedding=EmbeddingService(),
         retrieval=RetrievalService(),
         scoring=ScoringService(),
         explanation=ExplanationService(),
@@ -146,7 +144,9 @@ def test_upload_baseline_creates_feature_vector_and_baseline_profile(
         .first()
     )
     assert profile is not None
-    assert profile.confidence_level == pytest.approx(1 / 3)
+    # One short baseline paper is a thin profile: confidence now accounts
+    # for how much text was supplied, not just how many papers.
+    assert 0.0 < profile.confidence_level < 0.5
 
 
 def test_upload_for_analysis_without_baseline_has_no_analysis_id(

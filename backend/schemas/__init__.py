@@ -1,8 +1,10 @@
 from schemas.analysis import (
+    AnalysisBreakdown,
     AnalysisResultResponse,
-    BreakdownScore,
+    FeatureBreakdown,
     FeedbackCreate,
     FeedbackResponse,
+    ProfileBreakdown,
 )
 from schemas.auth import LoginRequest, TokenResponse
 from schemas.paper import AnalysisPaperCreate, BaselinePaperCreate, PaperResponse
@@ -24,7 +26,9 @@ __all__ = [
     "BaselinePaperCreate",
     "AnalysisPaperCreate",
     "PaperResponse",
-    "BreakdownScore",
+    "AnalysisBreakdown",
+    "FeatureBreakdown",
+    "ProfileBreakdown",
     "AnalysisResultResponse",
     "FeedbackCreate",
     "FeedbackResponse",

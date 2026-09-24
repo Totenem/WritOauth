@@ -79,13 +79,19 @@ def test_get_analysis_returns_score_breakdown_and_explanation(
     body = response.json()
     assert body["id"] == analysis_id
     assert 0 <= body["consistency_score"] <= 100
-    assert set(body["breakdown"].keys()) == {
-        "vocabulary",
-        "sentence_structure",
-        "grammar",
-        "readability",
-        "style",
+    assert set(body["breakdown"]["profiles"]) == {
+        "lexical",
+        "syntactic",
+        "grammatical",
+        "mechanical",
+        "stylistic",
+        "discourse",
     }
+    # The verdict is computed server-side, so the client never has to infer
+    # one by comparing a score against a threshold itself.
+    assert isinstance(body["flagged"], bool)
+    assert body["breakdown"]["flagged"] == body["flagged"]
+    assert body["breakdown"]["reliability"]["n_baseline_papers"] >= 1
     assert isinstance(body["explanation"], str) and body["explanation"]
 
 

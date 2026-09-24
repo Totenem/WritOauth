@@ -1,7 +1,12 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from ai.profile_engine import NoBaselinePapersError, ProfileEngine
+from ai.profile_engine import (
+    NoBaselinePapersError,
+    ProfileEngine,
+    aggregate,
+    confidence,
+)
 from application.repositories.student_repository import StudentRepository
 from application.repositories.subject_repository import SubjectRepository
 from application.repositories.teacher_repository import TeacherRepository
@@ -10,21 +15,6 @@ from models.paper import Paper
 from schemas.student import StudentCreate
 from schemas.subject import SubjectCreate
 from schemas.teacher import TeacherCreate
-
-_FEATURES_A = {
-    "embedding": [1.0, 1.0],
-    "sentence_count": 2,
-    "avg_sentence_length": 10.0,
-    "avg_word_length": 4.0,
-    "type_token_ratio": 0.5,
-}
-_FEATURES_B = {
-    "embedding": [3.0, 3.0],
-    "sentence_count": 4,
-    "avg_sentence_length": 20.0,
-    "avg_word_length": 6.0,
-    "type_token_ratio": 0.7,
-}
 
 
 def _make_student_and_subject(db_session: Session) -> tuple[int, int]:
@@ -42,7 +32,20 @@ def _make_student_and_subject(db_session: Session) -> tuple[int, int]:
     return student.id, subject.id
 
 
-def _add_baseline_feature_vector(
+def _fingerprint(
+    sentence_length: float, spelling_errors: int, words: int = 200
+) -> dict:
+    return {
+        "schema_version": 2,
+        "extractor_version": "2.0.0",
+        "meta": {"word_count": words, "sentence_count": 10, "paragraph_count": 2},
+        "scalars": {"mean_sentence_length": sentence_length},
+        "counts": {"spelling_errors": spelling_errors},
+        "distributions": {"punctuation_profile": {"comma": 0.6, "semicolon": 0.4}},
+    }
+
+
+def _add_baseline(
     db_session: Session, student_id: int, subject_id: int, features: dict
 ) -> None:
     paper = Paper(
@@ -55,77 +58,128 @@ def _add_baseline_feature_vector(
     db_session.commit()
 
 
-def test_update_profile_averages_embeddings_and_stylometrics(
-    db_session: Session,
-) -> None:
-    student_id, subject_id = _make_student_and_subject(db_session)
-    _add_baseline_feature_vector(db_session, student_id, subject_id, _FEATURES_A)
-    _add_baseline_feature_vector(db_session, student_id, subject_id, _FEATURES_B)
+class TestAggregate:
+    def test_scalars_carry_mean_stdev_and_raw_values(self) -> None:
+        """Storing only the mean made a highly variable writer look identical
+        to a metronomic one - both were scored against a single number."""
+        profile = aggregate([_fingerprint(10.0, 1), _fingerprint(20.0, 3)])
 
-    profile = ProfileEngine().update_profile(student_id, db_session)
+        stats = profile["scalars"]["mean_sentence_length"]
+        assert stats["mean"] == pytest.approx(15.0)
+        assert stats["stdev"] == pytest.approx(7.0710678, abs=1e-4)
+        assert stats["n"] == 2
+        assert stats["values"] == [10.0, 20.0]
 
-    assert profile.version == 1
-    assert profile.aggregated_features["embedding"] == [2.0, 2.0]
-    assert profile.aggregated_features["avg_sentence_length"] == 15.0
-    assert profile.aggregated_features["avg_word_length"] == 5.0
-    assert profile.aggregated_features["num_baseline_papers"] == 2
+    def test_single_paper_leaves_stdev_undefined(self) -> None:
+        profile = aggregate([_fingerprint(10.0, 1)])
+
+        assert profile["scalars"]["mean_sentence_length"]["stdev"] is None
+
+    def test_counts_are_pooled_not_averaged(self) -> None:
+        """Pooling is materially more stable than a mean of per-paper rates
+        when events are sparse."""
+        profile = aggregate(
+            [_fingerprint(10.0, 2, words=100), _fingerprint(10.0, 4, words=300)]
+        )
+
+        stats = profile["counts"]["spelling_errors"]
+        assert stats["total"] == 6
+        assert stats["total_words"] == 400
+        assert stats["rate_per_word"] == pytest.approx(6 / 400)
+        assert stats["per_paper"] == [2, 4]
+
+    def test_distributions_record_within_author_spread(self) -> None:
+        """The student's own paper-to-paper divergence is the natural scale
+        for judging a submission - available from just two papers."""
+        profile = aggregate(
+            [
+                _fingerprint(10.0, 1),
+                {
+                    **_fingerprint(12.0, 1),
+                    "distributions": {
+                        "punctuation_profile": {"comma": 0.9, "semicolon": 0.1}
+                    },
+                },
+            ]
+        )
+
+        stats = profile["distributions"]["punctuation_profile"]
+        assert stats["n"] == 2
+        assert stats["mean_pairwise_jsd"] > 0.0
+
+    def test_single_paper_has_no_measurable_spread(self) -> None:
+        profile = aggregate([_fingerprint(10.0, 1)])
+
+        assert (
+            profile["distributions"]["punctuation_profile"]["mean_pairwise_jsd"] is None
+        )
+
+    def test_records_totals_and_version(self) -> None:
+        profile = aggregate(
+            [_fingerprint(10.0, 1, words=150), _fingerprint(11.0, 2, words=250)]
+        )
+
+        assert profile["num_baseline_papers"] == 2
+        assert profile["total_baseline_words"] == 400
+        assert profile["schema_version"] == 2
 
 
-def test_update_profile_sets_confidence_from_paper_count(db_session: Session) -> None:
-    student_id, subject_id = _make_student_and_subject(db_session)
-    _add_baseline_feature_vector(db_session, student_id, subject_id, _FEATURES_A)
+class TestConfidence:
+    def test_grows_with_papers_and_words(self) -> None:
+        assert confidence(1, 400) < confidence(3, 1200) < confidence(5, 2000)
 
-    profile = ProfileEngine().update_profile(student_id, db_session)
+    def test_saturates_at_one(self) -> None:
+        assert confidence(20, 20000) == pytest.approx(1.0)
 
-    assert profile.confidence_level == pytest.approx(1 / 3)
-
-
-def test_update_profile_caps_confidence_at_one(db_session: Session) -> None:
-    student_id, subject_id = _make_student_and_subject(db_session)
-    for _ in range(5):
-        _add_baseline_feature_vector(db_session, student_id, subject_id, _FEATURES_A)
-
-    profile = ProfileEngine().update_profile(student_id, db_session)
-
-    assert profile.confidence_level == 1.0
+    def test_many_tiny_papers_are_not_a_strong_baseline(self) -> None:
+        """The old formula was `min(1, n/3)`, which called three forty-word
+        fragments a complete profile."""
+        assert confidence(5, 120) < 0.2
 
 
-def test_update_profile_increments_version_on_rebuild(db_session: Session) -> None:
-    student_id, subject_id = _make_student_and_subject(db_session)
-    _add_baseline_feature_vector(db_session, student_id, subject_id, _FEATURES_A)
-    ProfileEngine().update_profile(student_id, db_session)
+class TestUpdateProfile:
+    def test_builds_a_profile_from_every_baseline_paper(
+        self, db_session: Session
+    ) -> None:
+        student_id, subject_id = _make_student_and_subject(db_session)
+        _add_baseline(db_session, student_id, subject_id, _fingerprint(10.0, 1))
+        _add_baseline(db_session, student_id, subject_id, _fingerprint(20.0, 3))
 
-    _add_baseline_feature_vector(db_session, student_id, subject_id, _FEATURES_B)
-    profile = ProfileEngine().update_profile(student_id, db_session)
+        profile = ProfileEngine().update_profile(student_id, db_session)
 
-    assert profile.version == 2
+        assert profile.version == 1
+        assert profile.aggregated_features["num_baseline_papers"] == 2
+        assert profile.aggregated_features["scalars"]["mean_sentence_length"][
+            "mean"
+        ] == pytest.approx(15.0)
 
+    def test_versions_each_rebuild(self, db_session: Session) -> None:
+        student_id, subject_id = _make_student_and_subject(db_session)
+        _add_baseline(db_session, student_id, subject_id, _fingerprint(10.0, 1))
 
-def test_update_profile_raises_when_student_has_no_baseline_papers(
-    db_session: Session,
-) -> None:
-    student_id, _ = _make_student_and_subject(db_session)
+        first = ProfileEngine().update_profile(student_id, db_session)
+        _add_baseline(db_session, student_id, subject_id, _fingerprint(20.0, 2))
+        second = ProfileEngine().update_profile(student_id, db_session)
 
-    with pytest.raises(NoBaselinePapersError):
+        assert (first.version, second.version) == (1, 2)
+        assert second.aggregated_features["num_baseline_papers"] == 2
+
+    def test_raises_when_the_student_has_no_baselines(
+        self, db_session: Session
+    ) -> None:
+        student_id, _ = _make_student_and_subject(db_session)
+
+        with pytest.raises(NoBaselinePapersError):
+            ProfileEngine().update_profile(student_id, db_session)
+
+    def test_get_profile_returns_the_latest_version(self, db_session: Session) -> None:
+        student_id, subject_id = _make_student_and_subject(db_session)
+        _add_baseline(db_session, student_id, subject_id, _fingerprint(10.0, 1))
+        ProfileEngine().update_profile(student_id, db_session)
+        _add_baseline(db_session, student_id, subject_id, _fingerprint(20.0, 2))
         ProfileEngine().update_profile(student_id, db_session)
 
+        latest = ProfileEngine().get_profile(student_id, db_session)
 
-def test_get_profile_returns_latest_version(db_session: Session) -> None:
-    student_id, subject_id = _make_student_and_subject(db_session)
-    _add_baseline_feature_vector(db_session, student_id, subject_id, _FEATURES_A)
-    engine = ProfileEngine()
-    engine.update_profile(student_id, db_session)
-    _add_baseline_feature_vector(db_session, student_id, subject_id, _FEATURES_B)
-    latest = engine.update_profile(student_id, db_session)
-
-    fetched = engine.get_profile(student_id, db_session)
-
-    assert fetched is not None
-    assert fetched.id == latest.id
-    assert fetched.version == 2
-
-
-def test_get_profile_returns_none_when_no_profile_exists(db_session: Session) -> None:
-    student_id, _ = _make_student_and_subject(db_session)
-
-    assert ProfileEngine().get_profile(student_id, db_session) is None
+        assert latest is not None
+        assert latest.version == 2

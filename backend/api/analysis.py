@@ -5,6 +5,7 @@ from application.services.analysis_service import (
     AnalysisForbiddenError,
     AnalysisNotFoundError,
     AnalysisService,
+    StaleAnalysisError,
 )
 from database.connection import get_db
 from models.teacher import Teacher
@@ -29,6 +30,10 @@ async def get_analysis(
     except _OWNERSHIP_ERRORS as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    except StaleAnalysisError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
         ) from exc
 
 
