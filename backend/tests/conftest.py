@@ -9,6 +9,7 @@ from sqlalchemy.pool import StaticPool
 import models  # noqa: F401 - registers all mapped models on Base.metadata
 from ai.embedding_service import EmbeddingService
 from models.base import Base
+from models.teacher import Teacher
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -64,3 +65,35 @@ def db_session() -> Generator[Session, None, None]:
         session.close()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+@pytest.fixture()
+def teacher(db_session: Session) -> Teacher:
+    """An owning teacher.
+
+    Students and subjects are teacher-owned, so almost every repository and
+    service test needs one to hang its fixtures off.
+    """
+    record = Teacher(
+        name="Ada Lovelace",
+        email="ada@example.com",
+        password="not-a-real-hash",
+    )
+    db_session.add(record)
+    db_session.commit()
+    db_session.refresh(record)
+    return record
+
+
+@pytest.fixture()
+def other_teacher(db_session: Session) -> Teacher:
+    """A second teacher, for asserting that scoping actually filters."""
+    record = Teacher(
+        name="Bob Barker",
+        email="bob@example.com",
+        password="not-a-real-hash",
+    )
+    db_session.add(record)
+    db_session.commit()
+    db_session.refresh(record)
+    return record

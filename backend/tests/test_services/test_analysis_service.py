@@ -25,33 +25,35 @@ _BREAKDOWN = {
 }
 
 
-def _make_paper_id(db_session: Session) -> int:
+def _make_paper_id(db_session: Session) -> tuple[int, int]:
     teacher = TeacherRepository(db_session).create(
         TeacherCreate(
             name="Ada Lovelace", email="ada@example.com", password="secret123"
         )
     )
-    student = StudentRepository(db_session).create(StudentCreate(name="Grace Hopper"))
+    student = StudentRepository(db_session).create(
+        teacher.id, StudentCreate(name="Grace Hopper")
+    )
     subject = SubjectRepository(db_session).create(
         teacher.id, SubjectCreate(name="Algebra")
     )
     paper = PaperRepository(db_session).create_submission(
         AnalysisPaperCreate(student_id=student.id, subject_id=subject.id, content="x")
     )
-    return paper.id
+    return paper.id, teacher.id
 
 
 def test_get_analysis_returns_response_with_breakdown_and_explanation(
     db_session: Session,
 ) -> None:
-    paper_id = _make_paper_id(db_session)
+    paper_id, teacher_id = _make_paper_id(db_session)
     analysis = AnalysisRepository(db_session).save(
         paper_id,
         {"consistency_score": 92.0, "confidence_level": 1.0, "breakdown": _BREAKDOWN},
     )
     service = AnalysisService(db_session)
 
-    response = service.get_analysis(analysis.id)
+    response = service.get_analysis(analysis.id, teacher_id)
 
     assert response.id == analysis.id
     assert response.paper_id == paper_id
@@ -62,17 +64,17 @@ def test_get_analysis_returns_response_with_breakdown_and_explanation(
     )
 
 
-def test_get_analysis_raises_when_not_found(db_session: Session) -> None:
+def test_get_analysis_raises_when_not_found(db_session: Session, teacher) -> None:
     service = AnalysisService(db_session)
 
     with pytest.raises(AnalysisNotFoundError):
-        service.get_analysis(999)
+        service.get_analysis(999, teacher.id)
 
 
 def test_submit_feedback_creates_feedback_for_analysis_paper(
     db_session: Session,
 ) -> None:
-    paper_id = _make_paper_id(db_session)
+    paper_id, teacher_id = _make_paper_id(db_session)
     analysis = AnalysisRepository(db_session).save(
         paper_id,
         {"consistency_score": 92.0, "confidence_level": 1.0, "breakdown": _BREAKDOWN},
@@ -80,7 +82,9 @@ def test_submit_feedback_creates_feedback_for_analysis_paper(
     service = AnalysisService(db_session)
 
     response = service.submit_feedback(
-        analysis.id, FeedbackCreate(decision="genuine", remarks="checks out")
+        analysis.id,
+        teacher_id,
+        FeedbackCreate(decision="genuine", remarks="checks out"),
     )
 
     assert response.paper_id == paper_id
@@ -88,8 +92,10 @@ def test_submit_feedback_creates_feedback_for_analysis_paper(
     assert response.remarks == "checks out"
 
 
-def test_submit_feedback_raises_when_analysis_not_found(db_session: Session) -> None:
+def test_submit_feedback_raises_when_analysis_not_found(
+    db_session: Session, teacher
+) -> None:
     service = AnalysisService(db_session)
 
     with pytest.raises(AnalysisNotFoundError):
-        service.submit_feedback(999, FeedbackCreate(decision="genuine"))
+        service.submit_feedback(999, teacher.id, FeedbackCreate(decision="genuine"))
