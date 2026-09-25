@@ -20,7 +20,7 @@ export default function Card({
 }: CardProps) {
   return (
     <div
-      className={`rounded-xl border border-border bg-bg-elevated shadow-card ${className}`}
+      className={`rounded-2xl border border-border bg-bg-elevated shadow-card ${className}`}
     >
       {title || subtitle ? (
         <div className={`${padded ? "px-5 pt-5" : "px-5 pt-5"}`}>

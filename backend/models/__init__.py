@@ -1,6 +1,7 @@
 from models.analysis_result import AnalysisResult
 from models.base import Base
 from models.baseline_profile import BaselineProfile
+from models.enrollment import Enrollment
 from models.feature_vector import FeatureVector
 from models.feedback import Feedback
 from models.paper import Paper
@@ -13,6 +14,7 @@ __all__ = [
     "Teacher",
     "Subject",
     "Student",
+    "Enrollment",
     "Paper",
     "FeatureVector",
     "BaselineProfile",

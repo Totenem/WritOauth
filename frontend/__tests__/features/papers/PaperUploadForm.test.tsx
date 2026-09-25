@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import PaperUploadForm from "@/features/papers/PaperUploadForm";
 import * as studentService from "@/services/student.service";
 import * as subjectService from "@/services/subject.service";
+import { makeStudent, makeSubject } from "../../fixtures/roster";
 
 vi.mock("@/services/student.service");
 vi.mock("@/services/subject.service");
@@ -20,9 +21,9 @@ function renderForm(props: Partial<React.ComponentProps<typeof PaperUploadForm>>
   );
 }
 
-const mockStudents = [{ id: 1, name: "Ana Cruz", created_at: "2024-01-01T00:00:00Z" }];
+const mockStudents = [makeStudent({ id: 1, name: "Ana Cruz" })];
 const mockSubjects = [
-  { id: 5, teacher_id: 1, name: "English 101", created_at: "2024-01-01T00:00:00Z" },
+  makeSubject({ id: 5, name: "English 101" }),
 ];
 
 describe("PaperUploadForm", () => {
