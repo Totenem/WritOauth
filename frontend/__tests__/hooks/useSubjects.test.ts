@@ -10,6 +10,7 @@ import {
   useDeleteSubject,
 } from "@/hooks/useSubjects";
 import * as subjectService from "@/services/subject.service";
+import { makeSubject } from "../fixtures/roster";
 
 vi.mock("@/services/subject.service");
 
@@ -26,8 +27,8 @@ function createWrapper() {
 }
 
 const mockSubjects = [
-  { id: 1, teacher_id: 1, name: "English 101", created_at: "2024-01-01T00:00:00Z" },
-  { id: 2, teacher_id: 1, name: "History 201", created_at: "2024-01-02T00:00:00Z" },
+  makeSubject({ id: 1, name: "English 101" }),
+  makeSubject({ id: 2, name: "History 201" }),
 ];
 
 describe("useSubjects", () => {
@@ -95,12 +96,7 @@ describe("subject mutations", () => {
   });
 
   it("useCreateSubject posts the new name", async () => {
-    const created = {
-      id: 3,
-      teacher_id: 1,
-      name: "Science 301",
-      created_at: "2024-01-03T00:00:00Z",
-    };
+    const created = makeSubject({ id: 3, name: "Science 301" });
     vi.mocked(subjectService.createSubject).mockResolvedValue(created);
 
     const { result } = renderHook(() => useCreateSubject(), { wrapper: createWrapper() });

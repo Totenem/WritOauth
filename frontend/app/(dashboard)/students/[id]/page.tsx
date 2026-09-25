@@ -51,14 +51,23 @@ export default function StudentDetailPage({ params }: { params: { id: string } }
         <h1 className="mt-2 text-2xl font-semibold text-text">{student.name}</h1>
         <p className="mt-1 text-sm text-text-muted">
           Added {formatDate(student.created_at)}
+          {student.subjects.length > 0
+            ? ` · ${student.subjects.map((s) => s.name).join(", ")}`
+            : " · Not enrolled in any course"}
         </p>
       </div>
 
       <Card>
         <h2 className="mb-4 text-lg font-medium text-text">Edit student</h2>
         <StudentForm
-          defaultName={student.name}
-          onSubmit={(values) => updateStudent.mutateAsync({ id: student.id, ...values })}
+          defaultValues={{
+            first_name: student.first_name,
+            last_name: student.last_name,
+            email: student.email,
+          }}
+          onSubmit={({ first_name, last_name, email }) =>
+            updateStudent.mutateAsync({ id: student.id, first_name, last_name, email })
+          }
           isSubmitting={updateStudent.isPending}
           error={updateStudent.error}
           submitLabel="Save changes"

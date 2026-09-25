@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from application.repositories.student_repository import StudentRepository
+from application.repositories.subject_repository import SubjectRepository
 from models.student import Student
 from schemas.student import StudentCreate, StudentResponse, StudentUpdate
 
@@ -17,10 +18,23 @@ class StudentForbiddenError(Exception):
         super().__init__(f"Student {student_id} does not belong to this teacher")
 
 
+class SubjectNotEnrollableError(Exception):
+    """Raised when a submitted subject_id doesn't belong to the teacher.
+
+    Reported the same way SubjectService reports a cross-owner subject: a
+    404, so a teacher can't probe which other teacher's course ids exist.
+    """
+
+    def __init__(self, subject_id: int) -> None:
+        self.subject_id = subject_id
+        super().__init__(f"Subject {subject_id} not found")
+
+
 class StudentService:
     def __init__(self, db: Session) -> None:
         self.db = db
         self.student_repository = StudentRepository(db)
+        self.subject_repository = SubjectRepository(db)
 
     def list_students(self, teacher_id: int) -> list[StudentResponse]:
         students = self.student_repository.get_all(teacher_id)
@@ -31,6 +45,7 @@ class StudentService:
         return StudentResponse.model_validate(student)
 
     def create_student(self, teacher_id: int, data: StudentCreate) -> StudentResponse:
+        self._assert_subjects_owned(data.subject_ids, teacher_id)
         student = self.student_repository.create(teacher_id, data)
         return StudentResponse.model_validate(student)
 
@@ -52,3 +67,9 @@ class StudentService:
         if student.teacher_id != teacher_id:
             raise StudentForbiddenError(student_id)
         return student
+
+    def _assert_subjects_owned(self, subject_ids: list[int], teacher_id: int) -> None:
+        for subject_id in subject_ids:
+            subject = self.subject_repository.get_by_id(subject_id)
+            if subject is None or subject.teacher_id != teacher_id:
+                raise SubjectNotEnrollableError(subject_id)

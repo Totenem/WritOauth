@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { Navbar, Sidebar, Spinner } from "@/components";
+import { AppHeader, Spinner } from "@/components";
 
 export default function DashboardLayout({
   children,
@@ -11,7 +11,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, logout } = useAuth();
+  const { teacher, isAuthenticated, isLoading, logout } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -38,13 +38,12 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">
-      <Navbar onLogout={handleLogout} />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-          {children}
-        </main>
-      </div>
+      <AppHeader teacher={teacher} onLogout={handleLogout} />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+      <footer className="border-t border-border py-5 text-center text-caption text-text-subtle">
+        &copy; {new Date().getFullYear()} WritOath Educator Platform. Protecting human authorial
+        identity in academia.
+      </footer>
     </div>
   );
 }

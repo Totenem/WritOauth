@@ -7,6 +7,7 @@ import AnalysisUploadForm from "@/features/papers/AnalysisUploadForm";
 import * as paperService from "@/services/paper.service";
 import * as studentService from "@/services/student.service";
 import * as subjectService from "@/services/subject.service";
+import { makeStudent, makeSubject } from "../../fixtures/roster";
 
 vi.mock("@/services/paper.service");
 vi.mock("@/services/student.service");
@@ -24,9 +25,9 @@ function renderWithClient(ui: React.ReactElement) {
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
-const mockStudents = [{ id: 1, name: "Ana Cruz", created_at: "2024-01-01T00:00:00Z" }];
+const mockStudents = [makeStudent({ id: 1, name: "Ana Cruz" })];
 const mockSubjects = [
-  { id: 5, teacher_id: 1, name: "English 101", created_at: "2024-01-01T00:00:00Z" },
+  makeSubject({ id: 5, name: "English 101" }),
 ];
 
 async function fillAndSubmit(buttonName: string) {

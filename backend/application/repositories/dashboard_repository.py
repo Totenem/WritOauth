@@ -19,16 +19,20 @@ from typing import Any
 from sqlalchemy import Float, case, cast, func, literal_column, select
 from sqlalchemy.orm import Session
 
+from application.constants import MIN_BASELINE_PAPERS
 from models.analysis_result import AnalysisResult
 from models.feedback import Feedback
 from models.paper import Paper
 from models.student import Student
 from models.subject import Subject
 
-# A student is considered properly profiled at this many baseline papers.
-# Matches the point where ProfileEngine's confidence stops being dominated
-# by sample size.
-_MIN_BASELINES = 3
+_MIN_BASELINES = MIN_BASELINE_PAPERS
+
+# Students are displayed as one string everywhere outside their own CRUD
+# path - this expression is the single place that decides how first/last
+# combine.
+# `||` rather than concat(): SQLite (used in tests) only gained concat() in 3.44.
+_full_name = func.trim(Student.first_name + " " + Student.last_name)
 
 
 class DashboardRepository:
@@ -151,7 +155,7 @@ class DashboardRepository:
         rows = self.db.execute(
             select(
                 Student.id,
-                Student.name,
+                _full_name,
                 func.count(AnalysisResult.id),
                 func.sum(
                     case((AnalysisResult.consistency_score < threshold, 1), else_=0)
@@ -165,7 +169,7 @@ class DashboardRepository:
             .join(Subject, Subject.id == Paper.subject_id)
             .join(AnalysisResult, AnalysisResult.paper_id == Paper.id)
             .where(Student.teacher_id == teacher_id, Subject.teacher_id == teacher_id)
-            .group_by(Student.id, Student.name)
+            .group_by(Student.id, Student.first_name, Student.last_name)
         ).all()
 
         return [
@@ -216,7 +220,7 @@ class DashboardRepository:
                 AnalysisResult.id,
                 Paper.id,
                 Student.id,
-                Student.name,
+                _full_name,
                 Subject.id,
                 Subject.name,
                 AnalysisResult.consistency_score,

@@ -54,6 +54,31 @@ export function useUpdateSubject() {
   });
 }
 
+export const rosterQueryKey = (id: number) => ["subjects", id, "roster"] as const;
+
+export function useSubjectRoster(id: number) {
+  return useQuery({
+    queryKey: rosterQueryKey(id),
+    queryFn: () => subjectService.getRoster(id),
+    enabled: Number.isFinite(id),
+    retry: false,
+  });
+}
+
+/** Enrolls a CSV of students. Refreshes the roster, its card counts, and /students. */
+export function useBatchUploadStudents(id: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => subjectService.batchUploadStudents(id, file),
+    onSuccess: () => {
+      // ["subjects"] prefixes the list, detail and roster keys - one call refreshes all three.
+      queryClient.invalidateQueries({ queryKey: SUBJECTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+    },
+  });
+}
+
 export function useDeleteSubject() {
   const queryClient = useQueryClient();
 

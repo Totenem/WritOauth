@@ -9,6 +9,8 @@ from collections.abc import Callable
 
 from fastapi.testclient import TestClient
 
+from tests.helpers import api_student, api_subject
+
 _ESSAY = (
     "Although the committee deliberated at length regarding the proposal, "
     "several members expressed reservations. However, it is clear that one "
@@ -22,12 +24,8 @@ _DIFFERENT = (
 
 
 def _roster(client: TestClient, headers: dict, name: str = "Grace Hopper"):
-    student_id = client.post(
-        "/api/students", json={"name": name}, headers=headers
-    ).json()["id"]
-    subject_id = client.post(
-        "/api/subjects", json={"name": "English"}, headers=headers
-    ).json()["id"]
+    subject_id = api_subject(client, headers, "English")
+    student_id = api_student(client, headers, name, subject_id)
     return student_id, subject_id
 
 
@@ -101,10 +99,8 @@ def test_baseline_readiness_separates_the_three_states(
     client: TestClient, auth_headers: dict
 ) -> None:
     ready_id, subid = _roster(client, auth_headers, name="Ready")
-    partial_id = client.post(
-        "/api/students", json={"name": "Partial"}, headers=auth_headers
-    ).json()["id"]
-    client.post("/api/students", json={"name": "None yet"}, headers=auth_headers)
+    partial_id = api_student(client, auth_headers, "Partial", subid)
+    api_student(client, auth_headers, "None yet", subid)
 
     for _ in range(3):
         _upload(client, auth_headers, "/api/papers/baseline", ready_id, subid, _ESSAY)

@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import SubjectsPage from "@/app/(dashboard)/subjects/page";
 import * as subjectService from "@/services/subject.service";
+import { makeSubject } from "../../fixtures/roster";
 
 vi.mock("@/services/subject.service");
 
@@ -24,36 +25,36 @@ describe("SubjectsPage", () => {
     vi.mocked(subjectService.getSubjects).mockResolvedValue([]);
   });
 
-  it("renders the heading, the add form and the list", async () => {
+  it("renders the courses heading, the create action and an onboarding empty state", async () => {
     renderPage();
 
-    expect(screen.getByRole("heading", { name: "Subjects", level: 1 })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Add subject" })).toBeDefined();
-    expect(await screen.findByText(/no subjects yet/i)).toBeDefined();
+    expect(
+      screen.getByRole("heading", { name: /Active Courses & Baseline Collection Policies/, level: 1 })
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Create New Course Group" })).toBeDefined();
+    expect(await screen.findByText("No courses yet")).toBeDefined();
   });
 
-  it("creates a subject and refetches the list", async () => {
-    vi.mocked(subjectService.createSubject).mockResolvedValue({
-      id: 1,
-      teacher_id: 1,
-      name: "English 101",
-      created_at: "2024-01-01T00:00:00Z",
-    });
+  it("creates a course from the dialog and refetches the list", async () => {
+    vi.mocked(subjectService.createSubject).mockResolvedValue(makeSubject({ name: "English 101" }));
     const user = userEvent.setup();
 
     renderPage();
-    await screen.findByText(/no subjects yet/i);
+    await screen.findByText("No courses yet");
 
-    await user.type(screen.getByLabelText("Name"), "English 101");
-    await user.click(screen.getByRole("button", { name: "Add subject" }));
+    await user.click(screen.getByRole("button", { name: "Create New Course Group" }));
+    const dialog = screen.getByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Name"), "English 101");
+    await user.click(within(dialog).getByRole("button", { name: "Create course" }));
 
     await waitFor(() =>
       expect(subjectService.createSubject).toHaveBeenCalledWith({ name: "English 101" })
     );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     await waitFor(() => expect(subjectService.getSubjects).toHaveBeenCalledTimes(2));
   });
 
-  it("surfaces a create error without clearing the typed name", async () => {
+  it("keeps the dialog open with the typed name when create fails", async () => {
     vi.mocked(subjectService.createSubject).mockRejectedValue({
       isAxiosError: true,
       response: { data: { detail: "Subject already exists" } },
@@ -61,13 +62,15 @@ describe("SubjectsPage", () => {
     const user = userEvent.setup();
 
     renderPage();
-    await screen.findByText(/no subjects yet/i);
+    await screen.findByText("No courses yet");
 
-    const input = screen.getByLabelText<HTMLInputElement>("Name");
+    await user.click(screen.getByRole("button", { name: "Create New Course Group" }));
+    const dialog = screen.getByRole("dialog");
+    const input = within(dialog).getByLabelText<HTMLInputElement>("Name");
     await user.type(input, "English 101");
-    await user.click(screen.getByRole("button", { name: "Add subject" }));
+    await user.click(within(dialog).getByRole("button", { name: "Create course" }));
 
-    expect(await screen.findByText("Subject already exists")).toBeDefined();
+    expect(await within(dialog).findByText("Subject already exists")).toBeDefined();
     expect(input.value).toBe("English 101");
   });
 });

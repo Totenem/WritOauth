@@ -127,8 +127,12 @@ describe("DashboardOverview", () => {
 
     renderOverview();
 
-    expect(await screen.findByText("Students")).toBeDefined();
+    expect(await screen.findByText("Educator Command Center")).toBeDefined();
+    expect(screen.getByText("Students enrolled")).toBeDefined();
     expect(screen.getByText("Submissions checked")).toBeDefined();
+    // 2 of 4 students have a full baseline.
+    expect(screen.getByText("50.0%")).toBeDefined();
+    expect(screen.getByText("2 / 4")).toBeDefined();
   });
 
   it("surfaces students with no baseline as an actionable warning", async () => {
@@ -156,7 +160,7 @@ describe("DashboardOverview", () => {
 
     renderOverview();
 
-    expect(await screen.findByText("Needs review")).toBeDefined();
+    expect(await screen.findByText("Review required")).toBeDefined();
     expect(screen.getByText("You: flagged")).toBeDefined();
   });
 
@@ -166,14 +170,16 @@ describe("DashboardOverview", () => {
     renderOverview();
     await screen.findByText("Needs a closer look");
 
-    // The same student appears in the leaderboard and in recent activity,
-    // each pointing somewhere different.
-    const targets = screen
+    const studentTargets = screen
       .getAllByRole("link", { name: "Ana Cruz" })
       .map((link) => link.getAttribute("href"));
+    expect(studentTargets).toContain("/students/1");
 
-    expect(targets).toContain("/students/1");
-    expect(targets).toContain("/analysis/10");
+    expect(
+      screen
+        .getByRole("link", { name: "Inspect audit report for Ana Cruz" })
+        .getAttribute("href")
+    ).toBe("/analysis/10");
   });
 
   it("renders an error state", async () => {

@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from tests.helpers import api_student, api_subject
+
 
 def _auth_headers(client: TestClient) -> dict:
     client.post(
@@ -18,12 +20,8 @@ def _auth_headers(client: TestClient) -> dict:
 
 
 def _make_student_and_subject(client: TestClient, headers: dict) -> tuple[int, int]:
-    student_id = client.post(
-        "/api/students", json={"name": "Grace Hopper"}, headers=headers
-    ).json()["id"]
-    subject_id = client.post(
-        "/api/subjects", json={"name": "Algebra"}, headers=headers
-    ).json()["id"]
+    subject_id = api_subject(client, headers, "Algebra")
+    student_id = api_student(client, headers, "Grace Hopper", subject_id)
     return student_id, subject_id
 
 
