@@ -59,16 +59,16 @@ logs:
 	docker compose logs -f
 
 # Reclaim disk space safely: stops containers and drops dangling images +
-# build cache. Named volumes (postgres_data, chroma_data, ollama_models) are KEPT,
-# so your DB, vector store, and pulled models survive. Note the next build
+# build cache. Named volumes (postgres_data, hf_cache) are KEPT,
+# so your DB and the downloaded LUAR model survive. Note the next build
 # rebuilds from scratch (slower) since the cache is gone.
 prune:
 	docker compose down
 	docker builder prune -f
 	docker image prune -f
 
-# Destructive full reset: also removes named volumes (wipes DB / vector store /
-# Ollama models) and every unused image on the machine. Use only for a clean slate.
+# Destructive full reset: also removes named volumes (wipes the DB and the
+# cached LUAR model) and every unused image on the machine. Use only for a clean slate.
 prune-all:
 	docker compose down -v
 	docker system prune -af --volumes

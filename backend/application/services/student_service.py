@@ -1,9 +1,11 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from application.repositories.student_repository import StudentRepository
 from application.repositories.subject_repository import SubjectRepository
 from models.student import Student
 from schemas.student import StudentCreate, StudentResponse, StudentUpdate
+from utils.names import display_name
 
 
 class StudentNotFoundError(Exception):
@@ -30,6 +32,15 @@ class SubjectNotEnrollableError(Exception):
         super().__init__(f"Subject {subject_id} not found")
 
 
+class DuplicateStudentError(Exception):
+    """The teacher already has a student with this name (case- and
+    whitespace-insensitive). Reported as 409 Conflict."""
+
+    def __init__(self, first_name: str, last_name: str) -> None:
+        self.name = display_name(first_name, last_name)
+        super().__init__(f"A student named {self.name} already exists")
+
+
 class StudentService:
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -46,14 +57,28 @@ class StudentService:
 
     def create_student(self, teacher_id: int, data: StudentCreate) -> StudentResponse:
         self._assert_subjects_owned(data.subject_ids, teacher_id)
-        student = self.student_repository.create(teacher_id, data)
+        self._assert_name_free(teacher_id, data.first_name, data.last_name)
+        try:
+            student = self.student_repository.create(teacher_id, data)
+        except IntegrityError as exc:
+            # Lost a race with a concurrent create of the same name - the
+            # unique index caught what the pre-check couldn't.
+            self.db.rollback()
+            raise DuplicateStudentError(data.first_name, data.last_name) from exc
         return StudentResponse.model_validate(student)
 
     def update_student(
         self, student_id: int, teacher_id: int, data: StudentUpdate
     ) -> StudentResponse:
         self._get_owned(student_id, teacher_id)
-        student = self.student_repository.update(student_id, data)
+        self._assert_name_free(
+            teacher_id, data.first_name, data.last_name, ignore_id=student_id
+        )
+        try:
+            student = self.student_repository.update(student_id, data)
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise DuplicateStudentError(data.first_name, data.last_name) from exc
         return StudentResponse.model_validate(student)
 
     def delete_student(self, student_id: int, teacher_id: int) -> None:
@@ -67,6 +92,18 @@ class StudentService:
         if student.teacher_id != teacher_id:
             raise StudentForbiddenError(student_id)
         return student
+
+    def _assert_name_free(
+        self,
+        teacher_id: int,
+        first_name: str,
+        last_name: str,
+        ignore_id: int | None = None,
+    ) -> None:
+        """`ignore_id` lets an update keep (or re-case) its own name."""
+        match = self.student_repository.find_by_name(teacher_id, first_name, last_name)
+        if match is not None and match.id != ignore_id:
+            raise DuplicateStudentError(first_name, last_name)
 
     def _assert_subjects_owned(self, subject_ids: list[int], teacher_id: int) -> None:
         for subject_id in subject_ids:

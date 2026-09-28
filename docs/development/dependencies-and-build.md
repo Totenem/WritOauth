@@ -1,9 +1,9 @@
 # Backend Dependencies & Build Notes
 
-## NLP strategy: in-process spaCy, no LLM and no model server
+## NLP strategy: in-process spaCy + LUAR, no generative LLM and no model server
 
 The authorship engine runs **in the FastAPI process**. There is no Ollama
-container, no ChromaDB, no LangChain and no LLM of any kind - earlier
+container, no ChromaDB, no LangChain and no generative LLM - earlier
 versions of this document described that design, which was never built and
 has since been ruled out.
 
@@ -13,17 +13,34 @@ What is actually used:
 - **pyspellchecker** (dependency-free) for dictionary lookups.
 - **pyphen** for syllable counts.
 - **pypdf** / **python-docx** for document text extraction.
+- **LUAR** (`rrivera1849/LUAR-MUD`, 82M params) via `torch` (CPU) +
+  `transformers` for the neural authorship profile - see
+  [authorship-models.md](authorship-models.md).
 
-All are pure Python or ship prebuilt wheels. Nothing downloads a model at
-runtime: `en_core_web_sm` is pinned in `requirements.txt` as a wheel URL, so
-the image is self-contained and works offline.
+Everything in `requirements.txt` is pure Python or ships prebuilt wheels, and
+`en_core_web_sm` is pinned as a wheel URL. The one runtime download is the
+LUAR model (~330 MB), fetched once into the `hf_cache` Docker volume. If it
+can't be fetched, the engine carries on with the six stylometric profiles.
+
+### Two requirements files
+
+- **`requirements.txt`**: the app and the test suite. CI's test jobs install
+  only this file, since tests never load the model.
+- **`requirements-ml.txt`**: `torch`, `transformers`, `einops`. The Docker
+  image installs it in its own layer *before* `requirements.txt`, so editing
+  an app dependency doesn't re-install torch. Build with
+  `--build-arg INSTALL_ML=0` (and set `NEURAL_STYLE_ENABLED=false`) for a
+  slim image without it.
 
 ### Rules for `backend/requirements.txt`
 
-- **Do not** add `torch`, `transformers` or `sentence-transformers`. The
-  default `torch` wheel bundles ~2GB of CUDA runtime a CPU-only
+- **Do not** add `torch`, `transformers` or `sentence-transformers` here;
+  they belong in `requirements-ml.txt`. There, torch comes from the
+  **CPU-only** index (`download.pytorch.org/whl/cpu`, `+cpu` wheels on
+  x86_64). The default PyPI x86_64 wheel bundles ~2GB of CUDA runtime a
   `python:3.11-slim` image cannot use, and it was the main cause of
-  multi-thousand-second image builds.
+  multi-thousand-second image builds. aarch64 PyPI wheels are CPU-only
+  already.
 - **Do not** add `textstat`. It pulls in `nltk` plus four transitive
   dependencies, and some of its code paths expect corpora to be
   downloadable at runtime, which breaks the offline guarantee. `pyphen` is

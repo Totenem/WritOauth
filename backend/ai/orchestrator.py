@@ -1,14 +1,18 @@
-"""Coordinates the authorship pipeline: fingerprint, profile, score, explain.
+"""Coordinates the authorship pipeline: fingerprint, embed, profile, score,
+explain.
 
-No LLM and no vector database - see the individual service docstrings for
-why. The document-level embedding that previously drove `consistency_score`
-has been removed entirely: `BAAI/bge-small-en-v1.5` is a *semantic* model, so
-that score rewarded topic overlap. A whole class writing on one prompt all
-scored highly against each other, which is a systematic false negative
-across exactly the population being screened.
+No generative LLM and no vector database - see the individual service
+docstrings for why. An earlier document-level embedding
+(`BAAI/bge-small-en-v1.5`) was removed because it is a *semantic* model: it
+rewarded topic overlap, so a whole class writing on one prompt all scored
+highly against each other - a systematic false negative across exactly the
+population being screened.
 
-`consistency_score` is now the weighted aggregate of the six stylometric
-profiles, which are topic-robust by construction.
+Its replacement is LUAR (ai/neural_style_service.py), an *authorship* model
+trained to separate writers regardless of topic, and it is scored against
+the student's own paper-to-paper spread rather than a fixed cutoff.
+`consistency_score` is the weighted aggregate of the LUAR profile plus the
+six stylometric profiles; without the model it is the six alone.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from ai.explanation_service import ExplanationService
 from ai.features import pipeline, stylistic
 from ai.features.registry import EXTRACTOR_VERSION, SCHEMA_VERSION
 from ai.fingerprint_service import FingerprintService
+from ai.neural_style_service import StyleEmbedder, get_neural_style_service
 from ai.profile_engine import ProfileEngine
 from ai.retrieval_service import RetrievalService
 from ai.scoring_service import ScoringService
@@ -38,12 +43,16 @@ class AIOrchestrator:
         scoring: ScoringService,
         explanation: ExplanationService,
         profile: ProfileEngine,
+        neural: StyleEmbedder | None = None,
     ) -> None:
         self.fingerprint = fingerprint
         self.retrieval = retrieval
         self.scoring = scoring
         self.explanation = explanation
         self.profile = profile
+        # Defaults to the process-wide LUAR service, which is a no-op when
+        # NEURAL_STYLE_ENABLED is false (as in the test suite).
+        self.neural: StyleEmbedder = neural or get_neural_style_service()
 
     def process_baseline(self, paper: Paper, db: Session) -> BaselineProfile:
         """Fingerprint this baseline paper, then rebuild the student's profile."""
@@ -129,6 +138,11 @@ class AIOrchestrator:
         features = self.fingerprint.extract(
             paper.content, baseline_vocabulary=baseline_vocabulary
         )
+        vector = self.neural.embed(paper.content)
+        if vector is not None:
+            # Stored with the model id: vectors from different model
+            # revisions live in different spaces and must never be compared.
+            features["neural_style"] = {"model": self.neural.model_id, "vector": vector}
 
         existing = (
             db.query(FeatureVector).filter(FeatureVector.paper_id == paper.id).first()

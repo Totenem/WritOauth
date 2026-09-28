@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from application.services.student_service import (
+    DuplicateStudentError,
     StudentForbiddenError,
     StudentNotFoundError,
     StudentService,
@@ -39,6 +40,10 @@ async def create_student(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
         ) from exc
+    except DuplicateStudentError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
 
 
 @router.get("/{student_id}", response_model=StudentResponse)
@@ -67,6 +72,10 @@ async def update_student(
     except _OWNERSHIP_ERRORS as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    except DuplicateStudentError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
         ) from exc
 
 

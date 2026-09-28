@@ -45,6 +45,7 @@ export function makeProfile(
 }
 
 const PROFILE_LABELS: Record<ProfileKey, string> = {
+  neural_style: "AI Style Fingerprint",
   lexical: "Lexical",
   syntactic: "Syntactic",
   grammatical: "Grammatical",
@@ -61,11 +62,11 @@ export function makeBreakdown(
       key,
       makeProfile({ label: PROFILE_LABELS[key] }),
     ])
-  ) as Record<ProfileKey, ProfileBreakdown>;
+  ) as AnalysisBreakdown["profiles"];
 
   return {
     schema_version: 2,
-    extractor_version: "2.0.0",
+    extractor_version: "3.0.0",
     overall: { z: 0.4, score: 92 },
     profiles,
     reliability: {

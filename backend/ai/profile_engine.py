@@ -17,6 +17,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from ai.features.registry import EXTRACTOR_VERSION, SCHEMA_VERSION
+from ai.neural_style_service import centroid, leave_one_out_distances
 from ai.statistics import jensen_shannon, mean, stdev
 from models.baseline_profile import BaselineProfile
 from models.feature_vector import FeatureVector
@@ -149,7 +150,7 @@ def aggregate(fingerprints: list[dict[str, Any]]) -> dict[str, Any]:
             "n": len(present),
         }
 
-    return {
+    aggregated: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "extractor_version": EXTRACTOR_VERSION,
         "num_baseline_papers": len(fingerprints),
@@ -157,6 +158,34 @@ def aggregate(fingerprints: list[dict[str, Any]]) -> dict[str, Any]:
         "scalars": scalars,
         "counts": counts,
         "distributions": distributions,
+    }
+    neural = _aggregate_neural(fingerprints)
+    if neural is not None:
+        aggregated["neural_style"] = neural
+    return aggregated
+
+
+def _aggregate_neural(fingerprints: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Centroid + leave-one-out spread of the baseline LUAR vectors.
+
+    Only vectors from one model are comparable, so papers embedded by a
+    different model revision than the newest one are ignored until
+    `scripts/rebuild_analysis.py` re-embeds them.
+    """
+    embedded = [fp["neural_style"] for fp in fingerprints if fp.get("neural_style")]
+    if not embedded:
+        return None
+    model = embedded[-1]["model"]
+    vectors = [e["vector"] for e in embedded if e["model"] == model]
+
+    loo = leave_one_out_distances(vectors)
+    return {
+        "model": model,
+        "centroid": centroid(vectors),
+        "n": len(vectors),
+        "loo_distances": loo,
+        "mean": mean(loo) if loo else None,
+        "stdev": stdev(loo) if loo else None,
     }
 
 

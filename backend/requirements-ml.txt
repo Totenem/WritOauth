@@ -1,0 +1,25 @@
+# Neural authorship model (LUAR, ai/neural_style_service.py).
+#
+# Kept out of requirements.txt on purpose: the test suite never loads the
+# model (NEURAL_STYLE_ENABLED=false, a fake embedder is injected), and
+# torch is by far the heaviest dependency. The Docker image installs both
+# files; CI's test jobs install only requirements.txt.
+#
+# CPU-only torch wheels: the default PyPI build for x86_64 bundles ~2 GB of
+# CUDA libraries this app never uses. aarch64 PyPI wheels are CPU-only
+# already, so they come from PyPI unchanged.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.4.1+cpu ; platform_machine == "x86_64"
+torch==2.4.1 ; platform_machine == "aarch64"
+# LUAR-MUD's tokenizer.json was saved in a `tokenizers` format that
+# transformers 4.44.x (tokenizers <0.20) cannot parse - loading it raises
+# "data did not match any variant of untagged enum ModelWrapper". 4.45.2
+# requires tokenizers>=0.20,<0.21, which reads this format; confirmed
+# against the actual model repo, not just LUAR's own (older) usage example.
+# Bump deliberately, together with NEURAL_STYLE_REVISION, and re-run the
+# opt-in real-model test.
+transformers==4.45.2
+einops==0.8.0
+# Same pin as requirements.txt, which installs after this file - without it
+# transformers pulls numpy 2.x here only for the next layer to downgrade it.
+numpy>=1.26,<2

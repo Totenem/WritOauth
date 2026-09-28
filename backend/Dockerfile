@@ -7,13 +7,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+RUN python -m venv /opt/venv && /opt/venv/bin/pip install --upgrade pip
+
+# The ML stack (torch + transformers for the LUAR model) goes in its own
+# layer *before* requirements.txt: it is large and rarely changes, so
+# editing an app dependency doesn't re-install torch. Build with
+# --build-arg INSTALL_ML=0 for a slim image that scores with the six
+# stylometric profiles only (also set NEURAL_STYLE_ENABLED=false).
+ARG INSTALL_ML=1
+COPY requirements-ml.txt .
 # Cache pip downloads across builds (BuildKit is on by default in Compose v2),
-# so editing requirements.txt re-uses already-downloaded wheels instead of
+# so editing requirements re-uses already-downloaded wheels instead of
 # refetching them every build.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m venv /opt/venv && \
-    /opt/venv/bin/pip install --upgrade pip && \
+    if [ "$INSTALL_ML" = "1" ]; then /opt/venv/bin/pip install -r requirements-ml.txt; fi
+
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
     /opt/venv/bin/pip install -r requirements.txt
 
 FROM python:3.11-slim AS runtime

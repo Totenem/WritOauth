@@ -3,7 +3,7 @@
 import { Alert, FileDropzone } from "@/components";
 import { DownloadIcon, UploadIcon } from "@/components/icons";
 import { useBatchUploadStudents } from "@/hooks/useSubjects";
-import type { Subject } from "@/types";
+import type { BatchUploadResult, Subject } from "@/types";
 import { getApiErrorMessage } from "@/utils/apiError";
 
 /** Must match BATCH_HEADERS in backend/application/services/subject_service.py. */
@@ -19,6 +19,24 @@ function downloadTemplate(courseCode: string) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+function ResultSummary({ result }: { result: BatchUploadResult }) {
+  const enrolled = result.created_count + result.linked_count;
+  const existing =
+    result.linked_count > 0 ? ` (${result.linked_count} already on your roster)` : "";
+  const skipped =
+    result.skipped.length > 0 ? `, skipped ${plural(result.skipped.length, "row", "rows")}` : "";
+
+  return (
+    <Alert variant={enrolled > 0 ? "success" : "warning"}>
+      Enrolled {plural(enrolled, "student", "students")}
+      {existing}
+      {skipped}.
+    </Alert>
+  );
 }
 
 export default function BatchUpload({ subject }: { subject: Subject }) {
@@ -63,14 +81,7 @@ export default function BatchUpload({ subject }: { subject: Subject }) {
         {upload.isError ? (
           <Alert variant="danger">{getApiErrorMessage(upload.error)}</Alert>
         ) : null}
-        {result ? (
-          <Alert variant={result.created_count > 0 ? "success" : "warning"}>
-            Enrolled {result.created_count} {result.created_count === 1 ? "student" : "students"}
-            {result.skipped.length > 0
-              ? `, skipped ${result.skipped.length} ${result.skipped.length === 1 ? "row" : "rows"}.`
-              : "."}
-          </Alert>
-        ) : null}
+        {result ? <ResultSummary result={result} /> : null}
         {result && result.skipped.length > 0 ? (
           <ul className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-border bg-bg-subtle p-3 text-footnote">
             {result.skipped.map((skip) => (

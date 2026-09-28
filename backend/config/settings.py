@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed CORS origins (not a secret - a normal
     # local-dev default is fine). e.g. "https://app.example.com,https://foo.com"
     cors_origins: str = "http://localhost:3000"
+    # LUAR neural authorship model (ai/neural_style_service.py). Disable to
+    # score with the six stylometric profiles only - the test suite does, so
+    # it never downloads a model. The revision is a pinned, reviewed commit:
+    # the model ships custom code (trust_remote_code), so never point this at
+    # a branch name like "main".
+    neural_style_enabled: bool = True
+    neural_style_model: str = "rrivera1849/LUAR-MUD"
+    neural_style_revision: str = "f1db50251805ed69b43cf4f72ea2f0e231f36a1c"
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 

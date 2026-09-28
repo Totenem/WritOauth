@@ -15,9 +15,14 @@ def _breakdown(score: float, features: list[dict], available: bool = True) -> di
 
 
 def _feature(
-    label: str, z: float, kind: str = "scalar", measurement: str = "direct"
+    label: str,
+    z: float,
+    kind: str = "scalar",
+    measurement: str = "direct",
+    key: str = "some_feature",
 ) -> dict:
     return {
+        "key": key,
         "label": label,
         "kind": kind,
         "z": z,
@@ -81,6 +86,42 @@ def test_states_direction_for_scalars() -> None:
 
     assert "higher than usual" in higher
     assert "lower than usual" in lower
+
+
+def test_a_mild_deviation_is_not_worded_like_a_dramatic_one() -> None:
+    """z=1.2 scores ~83% (100*exp(-0.5*(1.2/2)^2)) - a mild wobble just past
+    the noteworthy cutoff, not the same thing as z=4 (~13.5%). Regression
+    for a report that said "higher than usual" identically for both."""
+    mild = ExplanationService().explain(
+        _breakdown(83.0, [_feature("Pronoun rate", 1.2)]), 75.0
+    )
+    dramatic = ExplanationService().explain(
+        _breakdown(13.0, [_feature("Pronoun rate", 4.0)]), 75.0
+    )
+
+    assert "somewhat higher than usual" in mild
+    assert "markedly higher than usual" in dramatic
+
+
+def test_a_mild_neural_deviation_is_worded_more_softly_than_a_dramatic_one() -> None:
+    """Same boundary as above, for the neural driver's special-cased
+    phrasing. Regression for the exact reported case: z=1.2 (~83%) read as
+    "further than usual" with no qualifier, same as a dramatic deviation."""
+    mild = ExplanationService().explain(
+        _breakdown(
+            83.0, [_feature("Overall writing fingerprint", 1.2, key="luar_distance")]
+        ),
+        75.0,
+    )
+    dramatic = ExplanationService().explain(
+        _breakdown(
+            13.0, [_feature("Overall writing fingerprint", 4.0, key="luar_distance")]
+        ),
+        75.0,
+    )
+
+    assert "somewhat further than usual from" in mild
+    assert "unusually far from" in dramatic
 
 
 def test_distributions_are_not_described_as_higher_or_lower() -> None:

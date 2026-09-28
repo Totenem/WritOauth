@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -52,3 +52,16 @@ class Student(Base):
         recent activity) displays a student as one string - this is the
         single place that decides how first/last combine for them."""
         return f"{self.first_name} {self.last_name}".strip()
+
+
+# One student per name per teacher, case-insensitively. Names are stored
+# whitespace-collapsed (utils/names.py), so lower() is the only folding the
+# index needs. Declared here rather than in __table_args__ because an
+# expression index needs the mapped columns to exist first.
+Index(
+    "uq_students_teacher_name",
+    Student.teacher_id,
+    func.lower(Student.first_name),
+    func.lower(Student.last_name),
+    unique=True,
+)

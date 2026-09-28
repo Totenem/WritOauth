@@ -22,6 +22,7 @@ from typing import Any
 from ai.features.mechanical import TYPOGRAPHY_FEATURES
 from ai.features.registry import (
     COUNT,
+    NEURAL,
     PROFILE_LABELS,
     PROFILE_ORDER,
     PROFILE_WEIGHTS,
@@ -29,6 +30,7 @@ from ai.features.registry import (
     FeatureSpec,
     for_profile,
 )
+from ai.neural_style_service import cosine_distance
 from ai.statistics import count_z, jensen_shannon, kernel, scalar_z, weighted_rms
 
 
@@ -87,13 +89,20 @@ class ScoringService:
                 # No feature in this profile met its gate. Suppress the whole
                 # profile and let the remaining weights renormalise, rather
                 # than scoring it 0 and calling that a deviation.
+                reasons = {f["suppressed_reason"] for f in evaluated}
                 profiles[profile] = {
                     "label": PROFILE_LABELS[profile],
                     "score": None,
                     "z": None,
                     "weight": PROFILE_WEIGHTS[profile],
                     "available": False,
-                    "suppressed_reason": "Not enough text to measure this profile",
+                    # One shared cause (e.g. "the AI model is unavailable")
+                    # is more useful to a teacher than the generic message.
+                    "suppressed_reason": (
+                        reasons.pop()
+                        if len(reasons) == 1
+                        else "Not enough text to measure this profile"
+                    ),
                     "features": evaluated,
                 }
 
@@ -139,7 +148,18 @@ class ScoringService:
         if reason is not None:
             return {**base, "available": False, "suppressed_reason": reason, "z": 0.0}
 
-        if spec.kind == SCALAR:
+        result: dict[str, Any] | None
+        if spec.profile == NEURAL:
+            outcome = self._score_neural(spec, submission, baseline)
+            if isinstance(outcome, str):
+                return {
+                    **base,
+                    "available": False,
+                    "suppressed_reason": outcome,
+                    "z": 0.0,
+                }
+            result = outcome
+        elif spec.kind == SCALAR:
             result = self._score_scalar(spec, submission, baseline, habitual_coverage)
         elif spec.kind == COUNT:
             result = self._score_count(spec, submission, baseline, submission_words)
@@ -154,8 +174,47 @@ class ScoringService:
                 "z": 0.0,
             }
 
+        if spec.one_sided:
+            result["z"] = max(0.0, float(result["z"]))
         result["score"] = kernel(float(result["z"]))
         return {**base, "available": True, "suppressed_reason": None, **result}
+
+    @staticmethod
+    def _score_neural(
+        spec: FeatureSpec,
+        submission: dict[str, Any],
+        baseline: dict[str, Any],
+    ) -> dict[str, Any] | str:
+        """Distance of the submission's LUAR vector from the baseline
+        centroid, judged against how far the student's *own* baseline papers
+        sit from each other (leave-one-out). Returns a suppression reason
+        instead when there is nothing comparable to score."""
+        embedding = submission.get("neural_style")
+        stats = baseline.get("neural_style")
+        if not embedding:
+            return "The AI style model was not available for this paper"
+        if not stats or stats.get("mean") is None:
+            return "Needs at least 2 baseline papers processed by the AI style model"
+        if embedding.get("model") != stats.get("model"):
+            return "Baseline was processed by a different AI model version"
+
+        distance = cosine_distance(embedding["vector"], stats["centroid"])
+        n = len(stats.get("loo_distances") or [])
+        z = scalar_z(
+            value=distance,
+            baseline_mean=float(stats["mean"]),
+            sample_stdev=stats.get("stdev"),
+            n=n,
+            prior_sigma=spec.prior_sigma,
+            floor=spec.floor,
+        )
+        return {
+            "z": z,
+            "submission": distance,
+            "baseline_mean": float(stats["mean"]),
+            "baseline_stdev": stats.get("stdev"),
+            "baseline_n": n,
+        }
 
     @staticmethod
     def _suppression_reason(

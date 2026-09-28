@@ -24,6 +24,15 @@ class NewEnrollee:
     teacher_id: int
 
 
+@dataclass
+class ExistingEnrollee:
+    """A CSV row that matched a student the teacher already has - enroll
+    them rather than create a second record."""
+
+    student_id: int
+    status: str
+
+
 class EnrollmentRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -52,12 +61,21 @@ class EnrollmentRepository:
             for student, status, count in rows
         ]
 
-    def batch_create_students(self, subject_id: int, rows: list[NewEnrollee]) -> int:
-        """Creates a new Student + Enrollment pair for every row, all in one
-        transaction so a mid-batch failure can't half-apply. Every valid CSV
-        row becomes a new Student - Student has no natural unique key to
-        dedupe against."""
-        for row in rows:
+    def batch_enroll(
+        self,
+        subject_id: int,
+        new_students: list[NewEnrollee],
+        existing: list[ExistingEnrollee],
+    ) -> tuple[int, int]:
+        """Creates a Student + Enrollment pair for every `new_students` row
+        and an Enrollment for every already-known student in `existing`, all
+        in one transaction so a mid-batch failure can't half-apply.
+
+        The caller (SubjectService.batch_upload) has already matched rows
+        against the teacher's roster by name, so `new_students` never
+        duplicates an existing Student. Returns (created, linked).
+        """
+        for row in new_students:
             student = Student(
                 first_name=row.first_name,
                 last_name=row.last_name,
@@ -71,5 +89,13 @@ class EnrollmentRepository:
                     student_id=student.id, subject_id=subject_id, status=row.status
                 )
             )
+        for link in existing:
+            self.db.add(
+                Enrollment(
+                    student_id=link.student_id,
+                    subject_id=subject_id,
+                    status=link.status,
+                )
+            )
         self.db.commit()
-        return len(rows)
+        return len(new_students), len(existing)

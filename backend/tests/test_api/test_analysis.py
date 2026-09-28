@@ -78,6 +78,7 @@ def test_get_analysis_returns_score_breakdown_and_explanation(
     assert body["id"] == analysis_id
     assert 0 <= body["consistency_score"] <= 100
     assert set(body["breakdown"]["profiles"]) == {
+        "neural_style",
         "lexical",
         "syntactic",
         "grammatical",

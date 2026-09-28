@@ -6,28 +6,42 @@ The engine answers one question: **does this submission look like the same
 person who wrote this student's baseline papers?**
 
 It is not an AI-content detector and does not try to be. It compares a
-submission against *that student's own* writing, across six linguistic
-profiles.
+submission against *that student's own* writing, across seven profiles:
+one neural (LUAR) and six linguistic.
 
-There is **no LLM**. Scores are deterministic and reproducible: the same
-text always produces the same numbers. `spaCy` (`en_core_web_sm`) supplies
-POS tags, a dependency parse and morphology; everything above that is
+There is **no generative LLM**. Scores are deterministic and reproducible:
+the same text always produces the same numbers. `spaCy` (`en_core_web_sm`)
+supplies POS tags, a dependency parse and morphology for the six stylometric
+profiles. The **LUAR** neural authorship model supplies a 512-dimension
+writing-fingerprint vector for the seventh. Everything above those two is
 arithmetic.
 
-## The six profiles
+**This guide covers the stylometric engine. The neural model, and the
+research behind it, is documented in [authorship-models.md](authorship-models.md).**
+
+## The seven profiles
 
 | Profile | What it measures | Weight |
 |---|---|---|
-| Stylistic | Function words, transitions, pronouns, contractions, habitual phrasing | 0.30 |
-| Syntactic | Sentence length and variation, clause complexity, dependency depth, passives, sentence openers | 0.20 |
-| Lexical | Vocabulary diversity (MATTR-100), lexical density, word length, register | 0.15 |
-| Mechanical | Spelling, punctuation, capitalisation, apostrophes | 0.15 |
-| Discourse & Complexity | Paragraph shape, cohesion, readability | 0.12 |
-| Grammatical | Error rate and which errors recur | 0.08 |
+| **AI Style Fingerprint (LUAR)** | Distance of the paper's neural style vector from the baseline centroid, relative to the student's own leave-one-out spread | **0.80** |
+| Stylistic | Function words, transitions, pronouns, contractions, habitual phrasing | 0.06 |
+| Syntactic | Sentence length and variation, clause complexity, dependency depth, passives, sentence openers | 0.04 |
+| Lexical | Vocabulary diversity (MATTR-100), lexical density, word length, register | 0.03 |
+| Mechanical | Spelling, punctuation, capitalisation, apostrophes | 0.03 |
+| Discourse & Complexity | Paragraph shape, cohesion, readability | 0.024 |
+| Grammatical | Error rate and which errors recur | 0.016 |
 
-Stylistic carries the most weight because function-word usage is the
-gold-standard authorship signal in the literature: topic-independent and
-largely unconscious. Grammatical carries the least — see its limits below.
+LUAR is treated as the primary signal; the six stylometric profiles are kept
+mainly for their explanatory value ("what changed"), and share the remaining
+0.20 in the original 30/20/15/15/12/8 ratio. Weighted RMS doesn't change when
+every weight is scaled by the same factor, so when LUAR is unavailable
+(model disabled, still loading, or fewer than 2 embedded baselines) the
+engine produces exactly the pre-LUAR six-profile scores.
+
+Among the stylometric profiles, Stylistic carries the most weight because
+function-word usage is the gold-standard authorship signal in the
+literature: topic-independent and largely unconscious. Grammatical carries
+the least — see its limits below.
 
 Weights, priors and gates all live in one place:
 `backend/ai/features/registry.py`. Changing a weight is a one-line edit
@@ -38,6 +52,7 @@ there, not a hunt through the scoring code.
 | Service | File | Responsibility |
 |---|---|---|
 | `FingerprintService` | `ai/fingerprint_service.py` | Parse once with spaCy, run the six extractors |
+| `NeuralStyleService` | `ai/neural_style_service.py` | LUAR embedding (lazy-loaded, CPU) + vector maths |
 | feature extractors | `ai/features/{lexical,syntactic,grammatical,mechanical,stylistic,discourse}.py` | One profile each |
 | `SpellingService` | `ai/spelling_service.py` | Dictionary lookups and edit-1 error typing |
 | `ProfileEngine` | `ai/profile_engine.py` | Aggregate baselines into mean/stdev/distribution |
@@ -110,8 +125,10 @@ textarea to a PDF.
 tracks whether the *numbers* would come out different. A formula tweak that
 leaves the shape alone still invalidates stored scores, so both exist.
 
-`feature_vectors`, `baseline_profiles` and `analysis_results` are all
-derived from `papers.content`. To regenerate them:
+`feature_vectors` (including the LUAR vector under `neural_style`),
+`baseline_profiles` and `analysis_results` are all derived from
+`papers.content`. To regenerate them, e.g. after enabling LUAR or changing
+its revision:
 
 ```bash
 cd backend && python -m scripts.rebuild_analysis          # everything
@@ -125,9 +142,12 @@ current models.
 ## Setup
 
 ```bash
-pip install -r requirements.txt   # includes en_core_web_sm as a pinned wheel
+pip install -r requirements.txt      # includes en_core_web_sm as a pinned wheel
+pip install -r requirements-ml.txt   # optional: torch (CPU) + transformers for LUAR
 ```
 
-No model download at runtime and no network access needed. spaCy, thinc and
-blis are pinned together because they must all resolve to prebuilt wheels on
-linux aarch64 — `thinc`'s latest release publishes none.
+The stylometric engine needs no model download and no network access. LUAR
+downloads once (~330 MB) into the Hugging Face cache (the `hf_cache` volume
+under Docker). Set `NEURAL_STYLE_ENABLED=false` to run without it. spaCy,
+thinc and blis are pinned together because they must all resolve to prebuilt
+wheels on linux aarch64 — `thinc`'s latest release publishes none.

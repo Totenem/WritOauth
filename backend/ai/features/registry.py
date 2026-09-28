@@ -18,8 +18,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 SCHEMA_VERSION = 2
-EXTRACTOR_VERSION = "2.0.0"
+# 3.0.0: LUAR neural style profile added and profile weights rebalanced.
+# The stored shape is unchanged (profiles is a dict), so SCHEMA_VERSION
+# stays 2 and v2.0.0 rows remain readable until rebuilt.
+EXTRACTOR_VERSION = "3.0.0"
 
+NEURAL = "neural_style"
 LEXICAL = "lexical"
 SYNTACTIC = "syntactic"
 GRAMMATICAL = "grammatical"
@@ -27,9 +31,18 @@ MECHANICAL = "mechanical"
 STYLISTIC = "stylistic"
 DISCOURSE = "discourse"
 
-PROFILE_ORDER = (LEXICAL, SYNTACTIC, GRAMMATICAL, MECHANICAL, STYLISTIC, DISCOURSE)
+PROFILE_ORDER = (
+    NEURAL,
+    LEXICAL,
+    SYNTACTIC,
+    GRAMMATICAL,
+    MECHANICAL,
+    STYLISTIC,
+    DISCOURSE,
+)
 
 PROFILE_LABELS = {
+    NEURAL: "AI Style Fingerprint",
     LEXICAL: "Lexical",
     SYNTACTIC: "Syntactic",
     GRAMMATICAL: "Grammatical",
@@ -44,13 +57,23 @@ PROFILE_LABELS = {
 # gold-standard authorship signal: topic-independent and unconscious.
 # Grammatical is weighted lowest because its detector is low-recall,
 # dialect-normative and produces sparse counts (see ai/features/grammatical.py).
+#
+# The neural profile takes 0.80 - it is treated as the primary signal, with
+# the six stylometric profiles kept mainly for their explanatory value - and
+# they share the remaining 0.20 in their original 30/20/15/15/12/8 ratios.
+# When the model is unavailable the neural profile is suppressed and the
+# weights renormalise over the six, which reproduces the pre-LUAR engine
+# exactly (weighted RMS is invariant to a uniform rescale). 0.80 is a
+# judgement call pending calibration (docs/development/authorship-models.md).
+_STYLOMETRIC_SHARE = 0.20
 PROFILE_WEIGHTS = {
-    STYLISTIC: 0.30,
-    SYNTACTIC: 0.20,
-    LEXICAL: 0.15,
-    MECHANICAL: 0.15,
-    DISCOURSE: 0.12,
-    GRAMMATICAL: 0.08,
+    NEURAL: 0.80,
+    STYLISTIC: 0.30 * _STYLOMETRIC_SHARE,
+    SYNTACTIC: 0.20 * _STYLOMETRIC_SHARE,
+    LEXICAL: 0.15 * _STYLOMETRIC_SHARE,
+    MECHANICAL: 0.15 * _STYLOMETRIC_SHARE,
+    DISCOURSE: 0.12 * _STYLOMETRIC_SHARE,
+    GRAMMATICAL: 0.08 * _STYLOMETRIC_SHARE,
 }
 
 DIRECT = "direct"
@@ -79,6 +102,8 @@ class FeatureSpec:
     min_sentences: int = 0
     min_baseline_papers: int = 1
     requires_paragraphs: bool = False
+    # Only deviation *above* the baseline counts (z is clamped at 0).
+    one_sided: bool = False
     note: str = ""
 
 
@@ -551,6 +576,26 @@ FEATURES: tuple[FeatureSpec, ...] = (
         0.20,
         0.02,
         requires_paragraphs=True,
+    ),
+    # ---------------- Neural (LUAR) ----------------
+    # Scored against the student's own leave-one-out spread (how far each
+    # baseline paper sits from the others), so it needs two baselines.
+    # prior 0.08 / floor 0.02 are EXPERT JUDGEMENT on LUAR cosine distances
+    # pending calibration (docs/development/authorship-models.md, section 8).
+    # One-sided: being *closer* than usual to the student's style is not
+    # evidence of anything.
+    _s(
+        "luar_distance",
+        NEURAL,
+        "Overall writing fingerprint (LUAR)",
+        1.0,
+        0.08,
+        0.02,
+        min_words=60,
+        min_baseline_papers=2,
+        one_sided=True,
+        note="Learned by a neural authorship model; the stylometric profiles "
+        "show which habits changed.",
     ),
 )
 

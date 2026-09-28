@@ -8,6 +8,11 @@ services:
     env_file: .env
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
+      # Bind mounts from a Windows/macOS host don't deliver inotify events
+      # into the Linux container, so the dev server never sees edits.
+      # Polling is the reliable fallback. (CHOKIDAR_USEPOLLING is the CRA
+      # knob and does nothing for Next's webpack watcher.)
+      - WATCHPACK_POLLING=true
     depends_on:
       - backend
     volumes:
@@ -26,11 +31,18 @@ services:
     ports:
       - "8000:8000"
     env_file: .env
+    environment:
+      # Same inotify problem as the frontend: uvicorn[standard] watches via
+      # watchfiles, which needs polling forced on for host bind mounts.
+      - WATCHFILES_FORCE_POLLING=true
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      # Hugging Face model cache (the LUAR style model, ~330 MB) - a named
+      # volume so it downloads once, not on every container rebuild.
+      - hf_cache:/root/.cache/huggingface
 
   postgres:
     image: postgres:16
@@ -52,3 +64,4 @@ services:
 
 volumes:
   postgres_data:
+  hf_cache:
