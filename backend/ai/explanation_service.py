@@ -96,8 +96,10 @@ def _describe_drivers(drivers: list[dict[str, Any]]) -> str:
         if feature.get("key") == "luar_distance":
             # The neural model has no human-readable "habit" to name - say
             # what it measured, and let the stylometric drivers say what.
-            reach = "unusually far from" if _is_large(feature) else (
-                "somewhat further than usual from"
+            reach = (
+                "unusually far from"
+                if _is_large(feature)
+                else "somewhat further than usual from"
             )
             phrases.append(
                 f"{lead} the overall writing fingerprint: the AI style model "
