@@ -5,7 +5,9 @@ WritOath is an AI-powered authorship verification platform designed to assist ed
 
 **WritOath** is an AI-powered authorship verification platform designed to assist educators in evaluating the authenticity of student-written works. Instead of relying on generalized AI-content detectors, WritOath builds a unique writing profile for each student using verified writing samples and continuously compares future submissions against that profile.
 
-The system combines stylometric feature extraction, Retrieval-Augmented Generation (RAG), semantic retrieval, and an open-source Large Language Model (LLM) to produce explainable consistency assessments. By using only the student's verified writing as the primary knowledge source, WritOath minimizes false positives commonly associated with traditional AI detection tools while providing educators with transparent, evidence-based insights.
+The system combines a neural authorship model (**LUAR**, an open-source transformer trained on about a million writers to recognise personal writing style) with stylometric feature extraction across six interpretable profiles. The result is an explainable consistency assessment. The neural model supplies detection power; the stylometric profiles show *which* writing habits changed. By comparing each student only against their own verified writing, WritOath minimizes false positives commonly associated with traditional AI detection tools while providing educators with transparent, evidence-based insights.
+
+> **How it works in detail:** [docs/development/authorship-models.md](docs/development/authorship-models.md) (the neural model, with references) and [docs/development/ai-pipeline.md](docs/development/ai-pipeline.md) (the stylometric engine).
 
 ---
 
@@ -40,11 +42,11 @@ Each student begins by submitting three verified writing samples covering differ
 
 Whenever a new paper is submitted, the system:
 
-1. Extracts measurable writing characteristics.
-2. Generates semantic embeddings of the document.
-3. Retrieves the student's most relevant verified writing samples using Retrieval-Augmented Generation (RAG).
-4. Uses an open-source Large Language Model to compare the new paper against the retrieved writing samples.
-5. Produces an explainable consistency score and detailed analysis.
+1. Extracts about 40 measurable writing characteristics across six stylometric profiles (lexical, syntactic, grammatical, mechanical, stylistic, discourse).
+2. Computes a 512-dimension neural "writing fingerprint" with the LUAR authorship model.
+3. Compares both against the student's baseline, relative to how much the student's *own* papers normally vary from each other.
+4. Combines them into one consistency score. The neural fingerprint carries 80% of the weight, with the six stylometric profiles mainly explaining *why*.
+5. Produces an explainable report naming the habits that changed most.
 6. Allows the teacher to validate the result, enabling the student's writing profile to improve over time.
 
 Rather than asking:
@@ -87,8 +89,7 @@ The project aims to:
 - Develop a centralized platform for managing teachers, students, subjects, and written submissions.
 - Establish a verified writing profile for each student using baseline writing samples.
 - Extract stylometric features from student documents for quantitative analysis.
-- Implement Retrieval-Augmented Generation (RAG) to retrieve relevant historical writing samples.
-- Utilize an open-source Large Language Model to compare new submissions against retrieved baseline documents.
+- Apply an open-source neural authorship model (LUAR) to compare the overall writing fingerprint of new submissions against the student's baseline papers.
 - Generate consistency scores accompanied by detailed explanations.
 - Allow teachers to review, validate, and provide feedback on every analysis.
 - Continuously improve each student's writing profile using teacher-validated submissions.

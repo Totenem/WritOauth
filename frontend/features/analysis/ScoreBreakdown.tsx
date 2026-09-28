@@ -3,11 +3,18 @@
 import { useState } from "react";
 
 import { Badge } from "@/components";
-import type { AnalysisBreakdown, FeatureBreakdown, ProfileKey } from "@/types";
+import type {
+  AnalysisBreakdown,
+  FeatureBreakdown,
+  ProfileBreakdown,
+  ProfileKey,
+} from "@/types";
 import { PROFILE_ORDER } from "@/types";
 import { formatPercentage } from "@/utils/formatters";
 
 const PROFILE_DESCRIPTIONS: Record<ProfileKey, string> = {
+  neural_style:
+    "A neural authorship model (LUAR) trained on about a million writers to recognise a person's style regardless of topic. It compares this paper's overall writing fingerprint with how much the student's own earlier papers vary from each other. It says whether the style changed; the profiles below say which habits changed.",
   stylistic:
     "Function words, transitions, pronouns and habitual phrasing. The strongest authorship signal, because these choices are largely unconscious and don't change with the topic.",
   syntactic:
@@ -22,12 +29,13 @@ const PROFILE_DESCRIPTIONS: Record<ProfileKey, string> = {
 };
 
 /**
- * The six authorship profiles, each expandable to the features behind it.
+ * The authorship profiles - the LUAR neural fingerprint plus the six
+ * stylometric profiles - each expandable to the features behind it.
  *
  * Bars are a single neutral colour on purpose. The backend asserts one
  * verdict - `flagged`, against its own threshold - and it applies to the
  * overall score, not to individual profiles. Colouring each bar good/bad
- * would invent six judgements the engine never made.
+ * would invent judgements the engine never made.
  */
 export default function ScoreBreakdown({
   breakdown,
@@ -37,7 +45,7 @@ export default function ScoreBreakdown({
   return (
     <div>
       <h2 className="text-headline font-semibold text-text">
-        Six authorship profiles
+        Authorship profiles
       </h2>
       <p className="mt-1 text-footnote text-text-muted">
         How closely each aspect of this submission matches the student&apos;s own
@@ -61,7 +69,7 @@ function ProfileRow({
   profile,
 }: {
   profileKey: ProfileKey;
-  profile: AnalysisBreakdown["profiles"][ProfileKey];
+  profile: ProfileBreakdown;
 }) {
   const [expanded, setExpanded] = useState(false);
   const scored = profile.available && profile.score !== null;
@@ -76,8 +84,11 @@ function ProfileRow({
       >
         <span className="flex-1">
           <span className="flex items-baseline justify-between gap-3">
-            <span className="text-subhead font-medium text-text">
+            <span className="flex items-center gap-1.5 text-subhead font-medium text-text">
               {profile.label}
+              {profileKey === "neural_style" ? (
+                <Badge label="AI model" variant="info" />
+              ) : null}
             </span>
             {scored ? (
               <span className="text-subhead font-semibold tabular-nums text-text">
@@ -157,16 +168,30 @@ function FeatureRow({ feature }: { feature: FeatureBreakdown }) {
   );
 }
 
+// A z just past 1 is a mild wobble (kernel score ~83%: 100*exp(-0.5*(z/2)^2)),
+// not the same thing as z=4 (~13.5%) - saying "higher"/"further than usual"
+// with no qualifier for both reads as far more alarming than a high score
+// actually is. This mirrors the two-tier wording in ai/explanation_service.py.
+const _LARGE_Z = 2;
+
 /**
- * Says which way a feature moved, not just how far.
+ * Says which way a feature moved and how far, not just which way.
  *
  * Distributions are compared by a divergence that is always positive, so
  * "higher" would be meaningless for them.
  */
 function describeDeviation(feature: FeatureBreakdown): string {
-  if (Math.abs(feature.z) < 1) return "typical";
-  if (feature.kind === "distribution") return "differs";
-  return feature.z > 0 ? "higher" : "lower";
+  const absZ = Math.abs(feature.z);
+  if (absZ < 1) return "typical";
+  const magnitude = absZ < _LARGE_Z ? "slightly" : "much";
+
+  // One-sided: the neural distance only ever counts when it is *further*
+  // from the student's style than their own papers are from each other.
+  if (feature.key === "luar_distance") return `${magnitude} further than usual`;
+  if (feature.kind === "distribution") {
+    return magnitude === "slightly" ? "differs slightly" : "differs sharply";
+  }
+  return `${magnitude} ${feature.z > 0 ? "higher" : "lower"}`;
 }
 
 function Chevron({ open }: { open: boolean }) {

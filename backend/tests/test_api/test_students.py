@@ -148,3 +148,83 @@ def test_delete_student_without_token_returns_401(client: TestClient) -> None:
     response = client.delete("/api/students/1")
 
     assert response.status_code == 401
+
+
+def test_creating_a_duplicate_name_returns_409(client: TestClient) -> None:
+    headers = _auth_headers(client)
+    subject_id = api_subject(client, headers)
+    first = client.post(
+        "/api/students",
+        json=student_payload("Grace Hopper", subject_id),
+        headers=headers,
+    )
+    assert first.status_code == 201
+
+    duplicate = client.post(
+        "/api/students",
+        json={
+            "first_name": " grace ",
+            "last_name": "HOPPER",
+            "subject_ids": [subject_id],
+        },
+        headers=headers,
+    )
+
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"] == "A student named grace HOPPER already exists"
+    assert len(client.get("/api/students", headers=headers).json()) == 1
+
+
+def test_renaming_onto_another_students_name_returns_409(client: TestClient) -> None:
+    headers = _auth_headers(client)
+    subject_id = api_subject(client, headers)
+    client.post(
+        "/api/students",
+        json=student_payload("Grace Hopper", subject_id),
+        headers=headers,
+    )
+    ada_id = client.post(
+        "/api/students",
+        json=student_payload("Ada Lovelace", subject_id),
+        headers=headers,
+    ).json()["id"]
+
+    response = client.put(
+        f"/api/students/{ada_id}",
+        json={"first_name": "Grace", "last_name": "Hopper"},
+        headers=headers,
+    )
+
+    assert response.status_code == 409
+
+
+def test_a_student_can_re_case_their_own_name(client: TestClient) -> None:
+    headers = _auth_headers(client)
+    subject_id = api_subject(client, headers)
+    student_id = client.post(
+        "/api/students",
+        json=student_payload("grace hopper", subject_id),
+        headers=headers,
+    ).json()["id"]
+
+    response = client.put(
+        f"/api/students/{student_id}",
+        json={"first_name": "Grace", "last_name": "Hopper"},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Grace Hopper"
+
+
+def test_two_teachers_may_each_have_a_student_with_the_same_name(
+    client: TestClient, auth_headers: dict, other_headers: dict
+) -> None:
+    for headers in (auth_headers, other_headers):
+        subject_id = api_subject(client, headers)
+        response = client.post(
+            "/api/students",
+            json=student_payload("Grace Hopper", subject_id),
+            headers=headers,
+        )
+        assert response.status_code == 201

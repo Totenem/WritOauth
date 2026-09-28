@@ -1,3 +1,5 @@
+import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from application.repositories.student_repository import StudentRepository
@@ -124,3 +126,28 @@ def test_delete_returns_false_when_not_found(db_session: Session) -> None:
     repo = StudentRepository(db_session)
 
     assert repo.delete(999) is False
+
+
+def test_find_by_name_ignores_case_and_whitespace(
+    db_session: Session, teacher: Teacher, other_teacher: Teacher
+) -> None:
+    repo = StudentRepository(db_session)
+    subject = db_subject(db_session, teacher.id)
+    student = repo.create(teacher.id, _payload("Ada Lovelace", subject.id))
+
+    assert repo.find_by_name(teacher.id, "  ada ", "LOVELACE") == student
+    assert repo.find_by_name(teacher.id, "Ada", "Byron") is None
+    assert repo.find_by_name(other_teacher.id, "Ada", "Lovelace") is None
+
+
+def test_the_database_rejects_a_duplicate_name_for_the_same_teacher(
+    db_session: Session, teacher: Teacher
+) -> None:
+    """The unique index is the backstop for races the service pre-check
+    can't see."""
+    repo = StudentRepository(db_session)
+    subject = db_subject(db_session, teacher.id)
+    repo.create(teacher.id, _payload("Ada Lovelace", subject.id))
+
+    with pytest.raises(IntegrityError):
+        repo.create(teacher.id, _payload("ADA   lovelace", subject.id))

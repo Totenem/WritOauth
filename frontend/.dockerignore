@@ -1,0 +1,16 @@
+# Dependencies are installed inside the image by `npm ci`. Copying the host's
+# node_modules over them would ship Windows-native binaries (e.g.
+# @next/swc-win32-*) into the Linux container.
+node_modules/
+.next/
+out/
+coverage/
+
+# Local secrets (injected via env_file at runtime, not baked in)
+.env
+.env*.local
+
+# Editor / OS cruft
+.vscode/
+.idea/
+.DS_Store

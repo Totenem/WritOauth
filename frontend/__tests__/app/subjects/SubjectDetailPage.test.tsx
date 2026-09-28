@@ -92,6 +92,7 @@ describe("SubjectDetailPage", () => {
     vi.mocked(subjectService.getSubject).mockResolvedValue(mockSubject);
     vi.mocked(subjectService.batchUploadStudents).mockResolvedValue({
       created_count: 2,
+      linked_count: 1,
       skipped: [{ row: 4, reason: "Subject code 'X' doesn't match this course (ENGLIS-AB12)" }],
     });
     const user = userEvent.setup();
@@ -107,7 +108,9 @@ describe("SubjectDetailPage", () => {
     await waitFor(() =>
       expect(subjectService.batchUploadStudents).toHaveBeenCalledWith(1, file)
     );
-    expect(await screen.findByText("Enrolled 2 students, skipped 1 row.")).toBeDefined();
+    expect(
+      await screen.findByText("Enrolled 3 students (1 already on your roster), skipped 1 row.")
+    ).toBeDefined();
     expect(screen.getByText("Row 4")).toBeDefined();
     expect(screen.getByText(/doesn't match this course/)).toBeDefined();
   });

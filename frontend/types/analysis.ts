@@ -1,11 +1,18 @@
-/** The six authorship profiles the engine measures. */
-export type ProfileKey =
+/** The six hand-built stylometric profiles - present on every analysis. */
+export type StylometricProfileKey =
   | "lexical"
   | "syntactic"
   | "grammatical"
   | "mechanical"
   | "stylistic"
   | "discourse";
+
+/**
+ * Every profile the engine can report: the six stylometric ones plus the
+ * LUAR neural style model ("AI Style Fingerprint"). The neural profile is
+ * absent on analyses produced before it existed (extractor < 3.0.0).
+ */
+export type ProfileKey = "neural_style" | StylometricProfileKey;
 
 /**
  * How trustworthy a single measurement is.
@@ -70,7 +77,9 @@ export interface AnalysisBreakdown {
   schema_version: number;
   extractor_version: string;
   overall: OverallScore;
-  profiles: Record<ProfileKey, ProfileBreakdown>;
+  profiles: Record<StylometricProfileKey, ProfileBreakdown> & {
+    neural_style?: ProfileBreakdown;
+  };
   reliability: Reliability;
   threshold: number;
   /** Computed server-side - the client never infers a verdict itself. */
@@ -106,6 +115,7 @@ export interface Feedback {
 
 /** Display order, strongest authorship signal first. */
 export const PROFILE_ORDER: ProfileKey[] = [
+  "neural_style",
   "stylistic",
   "syntactic",
   "lexical",

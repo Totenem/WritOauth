@@ -49,5 +49,9 @@ class BatchUploadSkip(BaseModel):
 
 
 class BatchUploadResult(BaseModel):
+    # New student records created by this upload.
     created_count: int
+    # Students the teacher already had (matched by name) who were enrolled
+    # into this course instead of being duplicated.
+    linked_count: int = 0
     skipped: list[BatchUploadSkip]

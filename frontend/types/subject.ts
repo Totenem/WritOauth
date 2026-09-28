@@ -38,7 +38,10 @@ export interface Roster {
 }
 
 export interface BatchUploadResult {
+  /** New student records created by the upload. */
   created_count: number;
+  /** Students already on the teacher's roster (matched by name) who were enrolled instead of duplicated. */
+  linked_count: number;
   /** `row` is 1-based and counts the header as row 1, like a spreadsheet. */
   skipped: { row: number; reason: string }[];
 }

@@ -1,9 +1,10 @@
 """Builds a teacher-facing explanation of an analysis.
 
-Deterministic template, no LLM: the sentences below are assembled from
-z-scores the scoring service already computed. That keeps explanations
-reproducible and free, and means the wording can never assert something the
-numbers don't support.
+Deterministic template, no generative LLM: the sentences below are assembled
+from z-scores the scoring service already computed - including the LUAR
+neural profile's, which is named in plain words rather than by feature
+label. That keeps explanations reproducible and free, and means the wording
+can never assert something the numbers don't support.
 
 Two deliberate choices:
 
@@ -91,23 +92,47 @@ def _rank_drivers(breakdown: dict[str, Any]) -> list[dict[str, Any]]:
 def _describe_drivers(drivers: list[dict[str, Any]]) -> str:
     phrases = []
     for index, feature in enumerate(drivers):
-        label = str(feature["label"]).lower()
         lead = "the largest difference is" if index == 0 else "also notable is"
+        if feature.get("key") == "luar_distance":
+            # The neural model has no human-readable "habit" to name - say
+            # what it measured, and let the stylometric drivers say what.
+            reach = "unusually far from" if _is_large(feature) else (
+                "somewhat further than usual from"
+            )
+            phrases.append(
+                f"{lead} the overall writing fingerprint: the AI style model "
+                f"places this paper {reach} the student's earlier work"
+            )
+            continue
+        label = str(feature["label"]).lower()
         phrases.append(f"{lead} {label}, which {_direction(feature)}")
     joined = "; ".join(phrases)
     return joined[0].upper() + joined[1:] + "."
 
 
+# A feature just past _NOTEWORTHY_Z (e.g. z=1.2, kernel score ~83%) is a mild
+# wobble, not a dramatic one (z=4 scores ~13.5%) - "is higher than usual"
+# with no qualifier reads as far more alarming than the score actually is.
+# This mirrors the two-tier language ScoreBreakdown.tsx uses in the report.
+_LARGE_Z = 2.0
+
+
+def _is_large(feature: dict[str, Any]) -> bool:
+    return abs(float(feature["z"])) >= _LARGE_Z
+
+
 def _direction(feature: dict[str, Any]) -> str:
-    """Describe which way a feature moved.
+    """Describe which way a feature moved, and how far.
 
     Distributions are compared by Jensen-Shannon divergence, which is always
     positive - "higher than usual" would be meaningless for them, so they
     get a shape-based phrasing instead.
     """
+    magnitude = "markedly" if _is_large(feature) else "somewhat"
     if feature.get("kind") == DISTRIBUTION:
-        return "follows a different pattern from usual"
-    return "is higher than usual" if float(feature["z"]) > 0 else "is lower than usual"
+        return f"follows a {magnitude} different pattern from usual"
+    direction = "higher" if float(feature["z"]) > 0 else "lower"
+    return f"is {magnitude} {direction} than usual"
 
 
 def _reliability_caveat(reliability: dict[str, Any]) -> str | None:

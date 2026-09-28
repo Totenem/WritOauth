@@ -15,17 +15,23 @@ For paper analysis, the flow extends into the AI pipeline:
 
 ```
 PaperService.upload_for_analysis()
-  → AnalyzePaperUseCase.execute()
-  → AIOrchestrator.analyze()
-      → FingerprintService.extract()    (stylometric features)
-      → EmbeddingService.embed()        (semantic vector)
-      → RetrievalService.retrieve()     (top-k from ChromaDB)
-      → PromptBuilder.build()           (constructs LLM prompt)
-      → LangChainPipeline.run()         (calls Qwen via Ollama)
-      → ScoringService.score()          (parses LLM response)
-      → ExplanationService.explain()    (natural language reasoning)
-  → AnalysisRepository.save()          (persists to Postgres)
+  → AIOrchestrator.analyze_submission()
+      → RetrievalService.retrieve()        (student's latest BaselineProfile, from Postgres)
+      → FingerprintService.extract()       (~40 stylometric features, six profiles - spaCy)
+      → NeuralStyleService.embed()         (512-d LUAR authorship vector - torch, CPU)
+      → ScoringService.score()             (z-scores vs. the student's own spread → 0-100)
+      → ExplanationService.explain()       (deterministic template, names the top drivers)
+  → AnalysisRepository.save()             (persists to Postgres)
+
+PaperService.upload_baseline()
+  → AIOrchestrator.process_baseline()
+      → FingerprintService.extract() + NeuralStyleService.embed()
+      → ProfileEngine.update_profile()     (new versioned BaselineProfile: stats + LUAR centroid)
 ```
+
+There is no generative LLM, no vector database and no model server: everything
+runs in the FastAPI process. See [ai-pipeline.md](ai-pipeline.md) for the
+stylometric engine and [authorship-models.md](authorship-models.md) for LUAR.
 
 ## Backend Folder Map
 
@@ -43,9 +49,10 @@ backend/
 │   ├── repositories/         ← Database queries (one class per model)
 │   ├── services/             ← Business orchestration (calls repositories + AI)
 │   └── use_cases/            ← One use case per major workflow
-├── ai/                       ← AI pipeline services (fingerprint, embed, retrieve, score, explain, profile)
-├── llm/                      ← LangChain + Qwen integration (pipeline, prompt builder, Ollama client)
-└── utils/                    ← Security helpers (JWT, password hash) and FastAPI dependencies
+├── ai/                       ← Authorship engine: fingerprint (features/), neural_style_service (LUAR),
+│                               profile_engine, retrieval, scoring, statistics, explanation, orchestrator
+├── scripts/rebuild_analysis.py ← Recomputes all derived data (features, embeddings, profiles, scores)
+└── utils/                    ← Security helpers (JWT, password hash), name normalization, FastAPI deps
 ```
 
 ## Adding a New API Endpoint

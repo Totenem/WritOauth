@@ -6,7 +6,7 @@ WritOauth is an AI-powered authorship verification platform that helps educators
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Docker Desktop | Latest | Runs all services (Postgres, ChromaDB, Ollama) |
+| Docker Desktop | Latest | Runs all services (frontend, backend, Postgres) |
 | Node.js | 20+ | Frontend development outside Docker |
 | Python | 3.11+ | Backend development outside Docker |
 | Git | Any | Version control |
@@ -23,8 +23,6 @@ After the containers start:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
 - API docs (Swagger): http://localhost:8000/docs
-- ChromaDB: http://localhost:8001
-- Ollama: http://localhost:11434
 
 ## Running Without Docker (Faster Dev Loop)
 
@@ -35,6 +33,7 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+pip install -r requirements-ml.txt  # optional: the LUAR neural model (torch, CPU)
 cp ../.env.example ../.env  # fill in local values
 uvicorn main:app --reload --port 8000
 ```
@@ -47,10 +46,10 @@ npm install
 npm run dev
 ```
 
-You still need Postgres, ChromaDB, and Ollama running. The easiest way is to start only those services via Docker:
+You still need Postgres running. The easiest way is to start only it via Docker:
 
 ```bash
-docker compose up postgres chromadb ollama
+docker compose up postgres
 ```
 
 ## Branch Naming (Git Flow Lite)

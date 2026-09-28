@@ -162,6 +162,7 @@ def test_stored_breakdown_carries_the_full_v2_payload(
     breakdown = result.breakdown
     assert breakdown["schema_version"] == 2
     assert set(breakdown["profiles"]) == {
+        "neural_style",
         "lexical",
         "syntactic",
         "grammatical",

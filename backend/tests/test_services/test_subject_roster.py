@@ -3,6 +3,7 @@
 import pytest
 from sqlalchemy.orm import Session
 
+from application.repositories.student_repository import StudentRepository
 from application.services.subject_service import (
     BATCH_HEADERS,
     BatchUploadFormatError,
@@ -203,3 +204,108 @@ def test_roster_counts_only_active_students_with_full_baselines(
         for s in service.get_roster(subject.id, teacher.id).students
     }
     assert ready == {"Rita Ready": True, "Pat Partial": False, "Gil Gone": True}
+
+
+# -- duplicate filtering ------------------------------------------------------
+
+
+def test_reuploading_the_same_roster_creates_no_duplicates(
+    db_session: Session, teacher: Teacher
+) -> None:
+    service = SubjectService(db_session)
+    subject = _subject(db_session, teacher.id)
+    data = _csv((subject.course_code, "Hopper", "Grace", "", "active"))
+
+    service.batch_upload(subject.id, teacher.id, data)
+    second = service.batch_upload(subject.id, teacher.id, data)
+
+    assert (second.created_count, second.linked_count) == (0, 0)
+    assert [(s.row, s.reason) for s in second.skipped] == [
+        (2, "Grace Hopper is already enrolled in this course")
+    ]
+    assert len(StudentRepository(db_session).get_all(teacher.id)) == 1
+
+
+def test_a_name_repeated_within_one_file_is_skipped(
+    db_session: Session, teacher: Teacher
+) -> None:
+    service = SubjectService(db_session)
+    subject = _subject(db_session, teacher.id)
+    code = subject.course_code
+
+    result = service.batch_upload(
+        subject.id,
+        teacher.id,
+        _csv(
+            (code, "Hopper", "Grace", "", "active"),
+            (code, "  HOPPER ", "grace", "", "active"),
+        ),
+    )
+
+    assert result.created_count == 1
+    assert [(s.row, s.reason) for s in result.skipped] == [
+        (3, "Duplicate of row 2 in this file")
+    ]
+
+
+def test_an_existing_student_is_enrolled_into_a_new_course_not_duplicated(
+    db_session: Session, teacher: Teacher
+) -> None:
+    service = SubjectService(db_session)
+    english = _subject(db_session, teacher.id, "English 301")
+    history = _subject(db_session, teacher.id, "History 101")
+
+    service.batch_upload(
+        english.id,
+        teacher.id,
+        _csv((english.course_code, "Hopper", "Grace", "", "active")),
+    )
+    result = service.batch_upload(
+        history.id,
+        teacher.id,
+        _csv((history.course_code, "hopper", "GRACE", "", "inactive")),
+    )
+
+    assert (result.created_count, result.linked_count) == (0, 1)
+    assert result.skipped == []
+
+    students = StudentRepository(db_session).get_all(teacher.id)
+    assert len(students) == 1
+    assert {s.name for s in students[0].subjects} == {"English 301", "History 101"}
+    history_row = service.get_roster(history.id, teacher.id).students[0]
+    assert history_row.status == "inactive"
+
+
+def test_another_teachers_student_with_the_same_name_is_not_matched(
+    db_session: Session, teacher: Teacher, other_teacher: Teacher
+) -> None:
+    service = SubjectService(db_session)
+    theirs = _subject(db_session, other_teacher.id)
+    mine = _subject(db_session, teacher.id)
+    service.batch_upload(
+        theirs.id,
+        other_teacher.id,
+        _csv((theirs.course_code, "Hopper", "Grace", "", "active")),
+    )
+
+    result = service.batch_upload(
+        mine.id, teacher.id, _csv((mine.course_code, "Hopper", "Grace", "", "active"))
+    )
+
+    assert (result.created_count, result.linked_count) == (1, 0)
+
+
+def test_stored_names_are_whitespace_collapsed(
+    db_session: Session, teacher: Teacher
+) -> None:
+    service = SubjectService(db_session)
+    subject = _subject(db_session, teacher.id)
+
+    service.batch_upload(
+        subject.id,
+        teacher.id,
+        _csv((subject.course_code, "van  der Berg", " Mary   Ann ", "", "active")),
+    )
+
+    student = StudentRepository(db_session).get_all(teacher.id)[0]
+    assert (student.first_name, student.last_name) == ("Mary Ann", "van der Berg")

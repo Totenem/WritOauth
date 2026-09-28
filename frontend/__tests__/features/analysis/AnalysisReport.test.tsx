@@ -175,7 +175,7 @@ describe("AnalysisReport", () => {
 
     renderReport(1);
 
-    await screen.findByText("Six authorship profiles");
+    await screen.findByText("Authorship profiles");
     expect(screen.queryByText("Read this score with care")).toBeNull();
   });
 
@@ -188,13 +188,13 @@ describe("AnalysisReport", () => {
     expect(link.getAttribute("href")).toBe("/papers/2");
   });
 
-  it("renders the six profiles and the feedback form", async () => {
+  it("renders every profile and the feedback form", async () => {
     vi.mocked(analysisService.getAnalysis).mockResolvedValue(analysis);
 
     renderReport(1);
 
-    expect(await screen.findByText("Six authorship profiles")).toBeDefined();
-    expect(screen.getAllByRole("meter")).toHaveLength(6);
+    expect(await screen.findByText("Authorship profiles")).toBeDefined();
+    expect(screen.getAllByRole("meter")).toHaveLength(7);
     expect(screen.getByRole("radio", { name: /genuine/i })).toBeDefined();
   });
 

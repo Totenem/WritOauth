@@ -18,6 +18,10 @@ def pytest_configure(config: pytest.Config) -> None:
     # before collection, i.e. before anything imports `main`/`database.connection`
     # and triggers Settings() construction.
     os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-tests-only")
+    # Never download the LUAR model in the test suite. Tests that exercise
+    # the neural profile inject a deterministic fake embedder instead (see
+    # tests/test_ai/test_neural_style.py); the one real-model test is opt-in.
+    os.environ["NEURAL_STYLE_ENABLED"] = "false"
 
 
 @pytest.fixture()

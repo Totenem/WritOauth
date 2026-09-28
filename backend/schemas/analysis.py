@@ -32,7 +32,8 @@ class FeatureBreakdown(BaseModel):
 
 
 class ProfileBreakdown(BaseModel):
-    """One of the six authorship profiles."""
+    """One authorship profile: the LUAR neural fingerprint or one of the six
+    stylometric profiles."""
 
     label: str
     score: float | None
