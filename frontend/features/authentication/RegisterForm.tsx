@@ -1,17 +1,19 @@
-"use client";
+﻿"use client";
 
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Button, Card, Input } from "@/components";
 import { getApiErrorMessage } from "@/utils/apiError";
+import AuthField from "./AuthField";
+import { AuthCard, FormError, GoogleButton, OrDivider, SubmitButton } from "./AuthCard";
+import { ArrowRightIcon, LockIcon, MailIcon, UserIcon } from "@/components/icons";
 
 interface RegisterFormValues {
   name: string;
   email: string;
   password: string;
-  confirmPassword: string;
+  acceptTerms: boolean;
 }
 
 export default function RegisterForm() {
@@ -20,10 +22,9 @@ export default function RegisterForm() {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<RegisterFormValues>({
-    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
+    defaultValues: { name: "", email: "", password: "", acceptTerms: false },
   });
 
   const onSubmit = async (values: RegisterFormValues) => {
@@ -40,22 +41,23 @@ export default function RegisterForm() {
   };
 
   return (
-    <Card>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-        <h2 className="text-xl font-semibold text-text">Create Account</h2>
-
-        <Input
-          label="Name"
-          type="text"
+    <AuthCard title="Sign Up" subtitle="Create an educator account to evaluate authentic student work.">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+        <AuthField
+          label="Full Name"
           autoComplete="name"
+          placeholder="Enter your name"
+          icon={<UserIcon />}
           error={errors.name?.message}
           {...register("name", { required: "Name is required" })}
         />
 
-        <Input
-          label="Email"
+        <AuthField
+          label="Academic Email"
           type="email"
           autoComplete="email"
+          placeholder="Enter your email"
+          icon={<MailIcon />}
           error={errors.email?.message}
           {...register("email", {
             required: "Email is required",
@@ -66,10 +68,12 @@ export default function RegisterForm() {
           })}
         />
 
-        <Input
+        <AuthField
           label="Password"
           type="password"
           autoComplete="new-password"
+          placeholder="Enter your password"
+          icon={<LockIcon />}
           error={errors.password?.message}
           {...register("password", {
             required: "Password is required",
@@ -77,35 +81,47 @@ export default function RegisterForm() {
           })}
         />
 
-        <Input
-          label="Confirm Password"
-          type="password"
-          autoComplete="new-password"
-          error={errors.confirmPassword?.message}
-          {...register("confirmPassword", {
-            required: "Please confirm your password",
-            validate: (value) =>
-              value === watch("password") || "Passwords do not match",
-          })}
-        />
+        <div>
+          <label className="flex items-start gap-2.5 text-footnote text-brand-navy/80">
+            <input
+              type="checkbox"
+              aria-invalid={errors.acceptTerms ? true : undefined}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-brand-gold-pale accent-brand-gold"
+              {...register("acceptTerms", {
+                required: "Please accept the terms to continue",
+              })}
+            />
+            <span>
+              I agree with the{" "}
+              <span className="font-medium text-brand-blue">Terms of Use</span> and{" "}
+              <span className="font-medium text-brand-blue">Academic Integrity Policy</span>
+            </span>
+          </label>
+          {errors.acceptTerms && (
+            <p className="mt-1.5 text-footnote text-red-600">{errors.acceptTerms.message}</p>
+          )}
+        </div>
 
-        {registerError && (
-          <p role="alert" className="text-sm text-danger">
-            {getApiErrorMessage(registerError)}
-          </p>
-        )}
+        {registerError && <FormError message={getApiErrorMessage(registerError)} />}
 
-        <Button type="submit" disabled={isRegistering} className="w-full">
-          {isRegistering ? "Creating account..." : "Create account"}
-        </Button>
+        <SubmitButton busy={isRegistering}>
+          {isRegistering ? "Creating account..." : "Sign Up"}
+        </SubmitButton>
 
-        <p className="text-center text-sm text-text-subtle">
+        <OrDivider />
+        <GoogleButton />
+
+        <p className="text-center text-footnote text-brand-navy/80">
           Already have an account?{" "}
-          <Link href="/login" className="text-primary-700 hover:underline">
-            Sign in
+          <Link
+            href="/login"
+            scroll={false}
+            className="inline-flex items-center gap-0.5 font-semibold text-brand-blue hover:text-brand-blue-light"
+          >
+            Login <ArrowRightIcon className="h-3 w-3" />
           </Link>
         </p>
       </form>
-    </Card>
+    </AuthCard>
   );
 }

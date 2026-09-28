@@ -7,6 +7,8 @@ paper, so a bad extraction never silently becomes a baseline profile.
 
 from fastapi.testclient import TestClient
 
+from tests.helpers import api_student, api_subject
+
 
 def _txt(content: bytes = b"The committee met on Tuesday to discuss the matter."):
     return {"file": ("essay.txt", content, "text/plain")}
@@ -56,12 +58,8 @@ def test_extracted_text_can_be_uploaded_as_a_baseline(
 ) -> None:
     """The whole point of the two-step flow: extract, review, then submit
     through the unchanged JSON endpoint."""
-    student_id = client.post(
-        "/api/students", json={"name": "Grace Hopper"}, headers=auth_headers
-    ).json()["id"]
-    subject_id = client.post(
-        "/api/subjects", json={"name": "English"}, headers=auth_headers
-    ).json()["id"]
+    subject_id = api_subject(client, auth_headers, "English")
+    student_id = api_student(client, auth_headers, "Grace Hopper", subject_id)
 
     extracted = client.post(
         "/api/papers/extract", files=_txt(), headers=auth_headers
@@ -87,12 +85,8 @@ def test_source_format_defaults_to_paste(
 ) -> None:
     """Papers submitted without a format are pastes, which keeps every
     existing client working unchanged."""
-    student_id = client.post(
-        "/api/students", json={"name": "Grace Hopper"}, headers=auth_headers
-    ).json()["id"]
-    subject_id = client.post(
-        "/api/subjects", json={"name": "English"}, headers=auth_headers
-    ).json()["id"]
+    subject_id = api_subject(client, auth_headers, "English")
+    student_id = api_student(client, auth_headers, "Grace Hopper", subject_id)
 
     response = client.post(
         "/api/papers/baseline",

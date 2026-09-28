@@ -5,13 +5,12 @@ from application.repositories.paper_repository import (
     PaperReferenceIntegrityError,
     PaperRepository,
 )
-from application.repositories.student_repository import StudentRepository
 from application.repositories.subject_repository import SubjectRepository
 from application.repositories.teacher_repository import TeacherRepository
 from schemas.paper import AnalysisPaperCreate, BaselinePaperCreate
-from schemas.student import StudentCreate
 from schemas.subject import SubjectCreate
 from schemas.teacher import TeacherCreate
+from tests.helpers import db_student
 
 
 def _make_student_and_subject(db_session: Session) -> tuple[int, int]:
@@ -20,9 +19,7 @@ def _make_student_and_subject(db_session: Session) -> tuple[int, int]:
             name="Ada Lovelace", email="ada@example.com", password="secret123"
         )
     )
-    student = StudentRepository(db_session).create(
-        teacher.id, StudentCreate(name="Grace Hopper")
-    )
+    student = db_student(db_session, teacher.id)
     subject = SubjectRepository(db_session).create(
         teacher.id, SubjectCreate(name="Algebra")
     )

@@ -13,16 +13,14 @@ from collections.abc import Callable
 
 from fastapi.testclient import TestClient
 
+from tests.helpers import api_student, api_subject
+
 
 def _make_student_and_subject(
     client: TestClient, headers: dict, name: str = "Grace Hopper"
 ) -> tuple[int, int]:
-    student_id = client.post(
-        "/api/students", json={"name": name}, headers=headers
-    ).json()["id"]
-    subject_id = client.post(
-        "/api/subjects", json={"name": "Algebra"}, headers=headers
-    ).json()["id"]
+    subject_id = api_subject(client, headers, "Algebra")
+    student_id = api_student(client, headers, name, subject_id)
     return student_id, subject_id
 
 
@@ -66,7 +64,7 @@ def _analysis_id_with_baseline(
 def test_list_students_excludes_another_teachers_students(
     client: TestClient, auth_headers: dict, other_headers: dict
 ) -> None:
-    client.post("/api/students", json={"name": "Grace Hopper"}, headers=auth_headers)
+    api_student(client, auth_headers, "Grace Hopper")
 
     response = client.get("/api/students", headers=other_headers)
 
@@ -77,9 +75,7 @@ def test_list_students_excludes_another_teachers_students(
 def test_get_another_teachers_student_returns_404(
     client: TestClient, auth_headers: dict, other_headers: dict
 ) -> None:
-    student_id = client.post(
-        "/api/students", json={"name": "Grace Hopper"}, headers=auth_headers
-    ).json()["id"]
+    student_id = api_student(client, auth_headers, "Grace Hopper")
 
     assert (
         client.get(f"/api/students/{student_id}", headers=other_headers).status_code
@@ -95,12 +91,12 @@ def test_get_another_teachers_student_returns_404(
 def test_update_another_teachers_student_returns_404(
     client: TestClient, auth_headers: dict, other_headers: dict
 ) -> None:
-    student_id = client.post(
-        "/api/students", json={"name": "Grace Hopper"}, headers=auth_headers
-    ).json()["id"]
+    student_id = api_student(client, auth_headers, "Grace Hopper")
 
     response = client.put(
-        f"/api/students/{student_id}", json={"name": "Hacked"}, headers=other_headers
+        f"/api/students/{student_id}",
+        json={"first_name": "Hacked", "last_name": ""},
+        headers=other_headers,
     )
 
     assert response.status_code == 404
@@ -140,9 +136,7 @@ def test_upload_baseline_into_another_teachers_subject_is_rejected(
     other_headers: dict,
 ) -> None:
     _, owner_subject_id = _make_student_and_subject(client, auth_headers)
-    intruder_student_id = client.post(
-        "/api/students", json={"name": "Intruder Student"}, headers=other_headers
-    ).json()["id"]
+    intruder_student_id = api_student(client, other_headers, "Intruder Student")
 
     response = client.post(
         "/api/papers/baseline",
@@ -182,9 +176,7 @@ def test_upload_for_analysis_into_another_teachers_subject_is_rejected(
     client: TestClient, auth_headers: dict, other_headers: dict
 ) -> None:
     _, owner_subject_id = _make_student_and_subject(client, auth_headers)
-    intruder_student_id = client.post(
-        "/api/students", json={"name": "Intruder Student"}, headers=other_headers
-    ).json()["id"]
+    intruder_student_id = api_student(client, other_headers, "Intruder Student")
 
     response = client.post(
         "/api/papers/analyze",
@@ -290,8 +282,8 @@ def test_second_teacher_sees_their_own_students(
     """Scoping must filter, not simply return nothing."""
     headers_a = register_and_login(email="a@example.com", name="Teacher A")
     headers_b = register_and_login(email="b@example.com", name="Teacher B")
-    client.post("/api/students", json={"name": "Student A"}, headers=headers_a)
-    client.post("/api/students", json={"name": "Student B"}, headers=headers_b)
+    api_student(client, headers_a, "Student A")
+    api_student(client, headers_b, "Student B")
 
     names_b = [s["name"] for s in client.get("/api/students", headers=headers_b).json()]
     names_a = [s["name"] for s in client.get("/api/students", headers=headers_a).json()]

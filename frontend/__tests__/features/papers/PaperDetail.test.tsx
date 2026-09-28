@@ -5,6 +5,7 @@ import PaperDetail from "@/features/papers/PaperDetail";
 import * as paperService from "@/services/paper.service";
 import * as studentService from "@/services/student.service";
 import * as subjectService from "@/services/subject.service";
+import { makeStudent, makeSubject } from "../../fixtures/roster";
 
 vi.mock("@/services/paper.service");
 vi.mock("@/services/student.service");
@@ -32,10 +33,10 @@ describe("PaperDetail", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(studentService.getStudents).mockResolvedValue([
-      { id: 1, name: "Ana Cruz", created_at: "2024-01-01T00:00:00Z" },
+      makeStudent({ id: 1, name: "Ana Cruz" }),
     ]);
     vi.mocked(subjectService.getSubjects).mockResolvedValue([
-      { id: 5, teacher_id: 1, name: "English 101", created_at: "2024-01-01T00:00:00Z" },
+      makeSubject({ id: 5, name: "English 101" }),
     ]);
   });
 

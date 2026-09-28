@@ -10,6 +10,7 @@ import {
   useDeleteStudent,
 } from "@/hooks/useStudents";
 import * as studentService from "@/services/student.service";
+import { makeStudent } from "../fixtures/roster";
 
 vi.mock("@/services/student.service");
 
@@ -26,8 +27,8 @@ function createWrapper() {
 }
 
 const mockStudents = [
-  { id: 1, name: "Ana Cruz", created_at: "2024-01-01T00:00:00Z" },
-  { id: 2, name: "Ben Reyes", created_at: "2024-01-02T00:00:00Z" },
+  makeStudent({ id: 1, name: "Ana Cruz" }),
+  makeStudent({ id: 2, name: "Ben Reyes" }),
 ];
 
 describe("useStudents", () => {
@@ -82,32 +83,37 @@ describe("student mutations", () => {
     vi.clearAllMocks();
   });
 
-  it("useCreateStudent posts the new name", async () => {
-    const created = { id: 3, name: "Cara Lim", created_at: "2024-01-03T00:00:00Z" };
+  it("useCreateStudent posts the new student with their courses", async () => {
+    const created = makeStudent({ id: 3, name: "Cara Lim" });
+    const newStudent = { first_name: "Cara", last_name: "Lim", email: null, subject_ids: [1] };
     vi.mocked(studentService.createStudent).mockResolvedValue(created);
 
     const { result } = renderHook(() => useCreateStudent(), { wrapper: createWrapper() });
 
     await act(async () => {
-      const returned = await result.current.mutateAsync({ name: "Cara Lim" });
+      const returned = await result.current.mutateAsync(newStudent);
       expect(returned).toEqual(created);
     });
 
-    expect(studentService.createStudent).toHaveBeenCalledWith({ name: "Cara Lim" });
+    expect(studentService.createStudent).toHaveBeenCalledWith(newStudent);
     await waitFor(() => expect(result.current.data).toEqual(created));
   });
 
   it("useUpdateStudent splits the id out of the payload", async () => {
-    const updated = { ...mockStudents[0], name: "Ana Cruz-Reyes" };
+    const updated = makeStudent({ id: 1, name: "Ana Cruz-Reyes" });
     vi.mocked(studentService.updateStudent).mockResolvedValue(updated);
 
     const { result } = renderHook(() => useUpdateStudent(), { wrapper: createWrapper() });
 
     await act(async () => {
-      await result.current.mutateAsync({ id: 1, name: "Ana Cruz-Reyes" });
+      await result.current.mutateAsync({ id: 1, first_name: "Ana", last_name: "Cruz-Reyes", email: null });
     });
 
-    expect(studentService.updateStudent).toHaveBeenCalledWith(1, { name: "Ana Cruz-Reyes" });
+    expect(studentService.updateStudent).toHaveBeenCalledWith(1, {
+      first_name: "Ana",
+      last_name: "Cruz-Reyes",
+      email: null,
+    });
   });
 
   it("useDeleteStudent deletes by id", async () => {
@@ -128,7 +134,7 @@ describe("student mutations", () => {
     const { result } = renderHook(() => useCreateStudent(), { wrapper: createWrapper() });
 
     await act(async () => {
-      await expect(result.current.mutateAsync({ name: "x" })).rejects.toThrow("nope");
+      await expect(result.current.mutateAsync({ first_name: "x", last_name: "y", email: null, subject_ids: [1] })).rejects.toThrow("nope");
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));

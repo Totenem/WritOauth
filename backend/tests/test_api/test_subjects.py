@@ -161,3 +161,121 @@ def test_delete_another_teachers_subject_returns_404(client: TestClient) -> None
     assert response.status_code == 404
     still_there = client.get(f"/api/subjects/{subject_id}", headers=headers_a)
     assert still_there.status_code == 200
+
+
+def _template(code: str, *rows: str) -> bytes:
+    header = "Subject Code,Last Name,First Name,Email,Status"
+    return "\n".join([header, *(f"{code},{row}" for row in rows)]).encode()
+
+
+def test_created_subject_has_a_course_code_and_empty_roster(client: TestClient) -> None:
+    headers = _auth_headers(client)
+
+    body = client.post(
+        "/api/subjects", json={"name": "Algebra"}, headers=headers
+    ).json()
+
+    assert body["course_code"].startswith("ALGEBR-")
+    assert body["student_count"] == 0
+    roster = client.get(f"/api/subjects/{body['id']}/roster", headers=headers)
+    assert roster.status_code == 200
+    assert roster.json()["students"] == []
+
+
+def test_batch_upload_enrolls_students_and_reports_skips(client: TestClient) -> None:
+    headers = _auth_headers(client)
+    subject = client.post(
+        "/api/subjects", json={"name": "Algebra"}, headers=headers
+    ).json()
+
+    response = client.post(
+        f"/api/subjects/{subject['id']}/students/batch",
+        files={
+            "file": (
+                "roster.csv",
+                _template(
+                    subject["course_code"],
+                    "Hopper,Grace,g@x.org,active",
+                    ",Ada,,active",
+                ),
+                "text/csv",
+            )
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["created_count"] == 1
+    assert response.json()["skipped"][0]["row"] == 3
+
+    listed = client.get("/api/subjects", headers=headers).json()[0]
+    assert listed["student_count"] == 1
+    students = client.get("/api/students", headers=headers).json()
+    assert [(s["name"], s["subjects"][0]["id"]) for s in students] == [
+        ("Grace Hopper", subject["id"])
+    ]
+
+
+def test_batch_upload_rejects_non_csv_files(client: TestClient) -> None:
+    headers = _auth_headers(client)
+    subject_id = client.post(
+        "/api/subjects", json={"name": "Algebra"}, headers=headers
+    ).json()["id"]
+
+    response = client.post(
+        f"/api/subjects/{subject_id}/students/batch",
+        files={"file": ("roster.xlsx", b"not a csv", "application/octet-stream")},
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+
+
+def test_batch_upload_rejects_a_file_missing_template_columns(
+    client: TestClient,
+) -> None:
+    headers = _auth_headers(client)
+    subject_id = client.post(
+        "/api/subjects", json={"name": "Algebra"}, headers=headers
+    ).json()["id"]
+
+    response = client.post(
+        f"/api/subjects/{subject_id}/students/batch",
+        files={"file": ("roster.csv", b"name\nGrace Hopper\n", "text/csv")},
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert "Missing column" in response.json()["detail"]
+
+
+def test_roster_and_batch_upload_are_404_for_another_teacher(
+    client: TestClient,
+) -> None:
+    owner = _auth_headers(client)
+    intruder = _register_and_login(client, "bob@example.com", "Bob Barker")
+    subject = client.post(
+        "/api/subjects", json={"name": "Algebra"}, headers=owner
+    ).json()
+
+    roster = client.get(f"/api/subjects/{subject['id']}/roster", headers=intruder)
+    upload = client.post(
+        f"/api/subjects/{subject['id']}/students/batch",
+        files={
+            "file": (
+                "r.csv",
+                _template(subject["course_code"], "Hopper,Grace,,active"),
+                "text/csv",
+            )
+        },
+        headers=intruder,
+    )
+
+    assert roster.status_code == 404
+    assert upload.status_code == 404
+    assert (
+        client.get(f"/api/subjects/{subject['id']}/roster", headers=owner).json()[
+            "students"
+        ]
+        == []
+    )

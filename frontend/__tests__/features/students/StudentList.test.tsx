@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import StudentList from "@/features/students/StudentList";
 import * as studentService from "@/services/student.service";
+import { makeStudent } from "../../fixtures/roster";
 
 vi.mock("@/services/student.service");
 
@@ -19,8 +20,8 @@ function renderStudentList() {
 }
 
 const mockStudents = [
-  { id: 1, name: "Ana Cruz", created_at: "2024-01-01T00:00:00Z" },
-  { id: 2, name: "Ben Reyes", created_at: "2024-01-02T00:00:00Z" },
+  makeStudent({ id: 1, name: "Ana Cruz" }),
+  makeStudent({ id: 2, name: "Ben Reyes" }),
 ];
 
 describe("StudentList", () => {

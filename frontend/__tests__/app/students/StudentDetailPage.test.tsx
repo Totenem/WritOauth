@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import StudentDetailPage from "@/app/(dashboard)/students/[id]/page";
 import * as studentService from "@/services/student.service";
+import { makeStudent } from "../../fixtures/roster";
 
 vi.mock("@/services/student.service");
 
@@ -23,7 +24,7 @@ function renderPage(id = "1") {
   );
 }
 
-const mockStudent = { id: 1, name: "Ana Cruz", created_at: "2024-01-01T00:00:00Z" };
+const mockStudent = makeStudent({ id: 1, name: "Ana Cruz" });
 
 describe("StudentDetailPage", () => {
   beforeEach(() => {
@@ -49,7 +50,7 @@ describe("StudentDetailPage", () => {
 
     expect(await screen.findByRole("heading", { name: "Ana Cruz", level: 1 })).toBeDefined();
     await waitFor(() =>
-      expect(screen.getByLabelText<HTMLInputElement>("Name").value).toBe("Ana Cruz")
+      expect(screen.getByLabelText<HTMLInputElement>("Last name").value).toBe("Cruz")
     );
   });
 
@@ -75,23 +76,25 @@ describe("StudentDetailPage", () => {
 
   it("saves an edited name", async () => {
     vi.mocked(studentService.getStudent).mockResolvedValue(mockStudent);
-    vi.mocked(studentService.updateStudent).mockResolvedValue({
-      ...mockStudent,
-      name: "Ana Cruz-Reyes",
-    });
+    vi.mocked(studentService.updateStudent).mockResolvedValue(
+      makeStudent({ id: 1, name: "Ana Cruz-Reyes" })
+    );
     const user = userEvent.setup();
 
     renderPage();
     await screen.findByRole("heading", { name: "Ana Cruz", level: 1 });
 
-    const input = screen.getByLabelText("Name");
+    const input = screen.getByLabelText("Last name");
     await user.clear(input);
-    await user.type(input, "Ana Cruz-Reyes");
+    await user.type(input, "Cruz-Reyes");
+    await user.type(screen.getByLabelText("Email (optional)"), "ana@school.edu");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() =>
       expect(studentService.updateStudent).toHaveBeenCalledWith(1, {
-        name: "Ana Cruz-Reyes",
+        first_name: "Ana",
+        last_name: "Cruz-Reyes",
+        email: "ana@school.edu",
       })
     );
   });

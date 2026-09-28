@@ -5,6 +5,7 @@ from application.services.student_service import (
     StudentForbiddenError,
     StudentNotFoundError,
     StudentService,
+    SubjectNotEnrollableError,
 )
 from database.connection import get_db
 from models.teacher import Teacher
@@ -32,7 +33,12 @@ async def create_student(
     db: Session = Depends(get_db),
     current_teacher: Teacher = Depends(get_current_teacher),
 ) -> StudentResponse:
-    return StudentService(db).create_student(current_teacher.id, body)
+    try:
+        return StudentService(db).create_student(current_teacher.id, body)
+    except SubjectNotEnrollableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
 
 
 @router.get("/{student_id}", response_model=StudentResponse)

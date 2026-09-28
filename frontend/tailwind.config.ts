@@ -13,6 +13,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Fixed brand palette - does not swap with the theme.
+        brand: {
+          ink: "#05102D",
+          navy: "#1A2444",
+          blue: { DEFAULT: "#2A468B", light: "#3D6AC1" },
+          cream: "#FFF7E3",
+          gold: { DEFAULT: "#B89343", light: "#CDB178", pale: "#DFCBA7" },
+        },
         primary: {
           50: withVar("--color-primary-50"),
           100: withVar("--color-primary-100"),
@@ -24,6 +32,10 @@ const config: Config = {
           700: withVar("--color-primary-700"),
           800: withVar("--color-primary-800"),
           900: withVar("--color-primary-900"),
+        },
+        accent: {
+          DEFAULT: withVar("--color-accent"),
+          soft: withVar("--color-accent-soft"),
         },
         bg: {
           DEFAULT: withVar("--color-bg"),

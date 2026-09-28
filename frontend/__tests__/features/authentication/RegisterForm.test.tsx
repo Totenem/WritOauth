@@ -24,45 +24,52 @@ function renderRegisterForm() {
   );
 }
 
+async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText("Full Name"), "Jane Teacher");
+  await user.type(screen.getByLabelText("Academic Email"), "jane@example.com");
+  await user.type(screen.getByLabelText("Password"), "secret123");
+  await user.click(screen.getByRole("checkbox"));
+}
+
 describe("RegisterForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders the create account form", () => {
+  it("renders the sign up form", () => {
     renderRegisterForm();
-    expect(screen.getByRole("heading", { name: "Create Account" })).toBeDefined();
-    expect(screen.getByLabelText("Name")).toBeDefined();
-    expect(screen.getByLabelText("Email")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Sign Up" })).toBeDefined();
+    expect(screen.getByLabelText("Full Name")).toBeDefined();
+    expect(screen.getByLabelText("Academic Email")).toBeDefined();
     expect(screen.getByLabelText("Password")).toBeDefined();
-    expect(screen.getByLabelText("Confirm Password")).toBeDefined();
-    expect(screen.getByRole("button", { name: /create account/i })).toBeDefined();
+    expect(screen.getByRole("checkbox")).toBeDefined();
+    expect(screen.getByRole("button", { name: /sign up/i })).toBeDefined();
   });
 
   it("shows validation errors and does not register on an empty submit", async () => {
     const user = userEvent.setup();
     renderRegisterForm();
 
-    await user.click(screen.getByRole("button", { name: /create account/i }));
+    await user.click(screen.getByRole("button", { name: /sign up/i }));
 
     expect(await screen.findByText("Name is required")).toBeDefined();
     expect(screen.getByText("Email is required")).toBeDefined();
     expect(screen.getByText("Password is required")).toBeDefined();
+    expect(screen.getByText("Please accept the terms to continue")).toBeDefined();
     expect(authService.register).not.toHaveBeenCalled();
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it("shows a mismatch error when passwords don't match", async () => {
+  it("does not register until the terms are accepted", async () => {
     const user = userEvent.setup();
     renderRegisterForm();
 
-    await user.type(screen.getByLabelText("Name"), "Jane Teacher");
-    await user.type(screen.getByLabelText("Email"), "jane@example.com");
+    await user.type(screen.getByLabelText("Full Name"), "Jane Teacher");
+    await user.type(screen.getByLabelText("Academic Email"), "jane@example.com");
     await user.type(screen.getByLabelText("Password"), "secret123");
-    await user.type(screen.getByLabelText("Confirm Password"), "different123");
-    await user.click(screen.getByRole("button", { name: /create account/i }));
+    await user.click(screen.getByRole("button", { name: /sign up/i }));
 
-    expect(await screen.findByText("Passwords do not match")).toBeDefined();
+    expect(await screen.findByText("Please accept the terms to continue")).toBeDefined();
     expect(authService.register).not.toHaveBeenCalled();
   });
 
@@ -80,11 +87,8 @@ describe("RegisterForm", () => {
     const user = userEvent.setup();
     renderRegisterForm();
 
-    await user.type(screen.getByLabelText("Name"), "Jane Teacher");
-    await user.type(screen.getByLabelText("Email"), "jane@example.com");
-    await user.type(screen.getByLabelText("Password"), "secret123");
-    await user.type(screen.getByLabelText("Confirm Password"), "secret123");
-    await user.click(screen.getByRole("button", { name: /create account/i }));
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /sign up/i }));
 
     await waitFor(() =>
       expect(authService.register).toHaveBeenCalledWith({
@@ -106,11 +110,8 @@ describe("RegisterForm", () => {
     const user = userEvent.setup();
     renderRegisterForm();
 
-    await user.type(screen.getByLabelText("Name"), "Jane Teacher");
-    await user.type(screen.getByLabelText("Email"), "jane@example.com");
-    await user.type(screen.getByLabelText("Password"), "secret123");
-    await user.type(screen.getByLabelText("Confirm Password"), "secret123");
-    await user.click(screen.getByRole("button", { name: /create account/i }));
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /sign up/i }));
 
     expect(await screen.findByRole("alert")).toBeDefined();
     expect(pushMock).not.toHaveBeenCalled();

@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from tests.helpers import api_subject, student_payload
+
 
 def _auth_headers(client: TestClient) -> dict:
     client.post(
@@ -19,13 +21,20 @@ def _auth_headers(client: TestClient) -> dict:
 
 def test_full_student_lifecycle(client: TestClient) -> None:
     headers = _auth_headers(client)
+    subject_id = api_subject(client, headers)
 
     create_response = client.post(
-        "/api/students", json={"name": "Grace Hopper"}, headers=headers
+        "/api/students",
+        json=student_payload("Grace Hopper", subject_id, "grace@navy.mil"),
+        headers=headers,
     )
     assert create_response.status_code == 201
     student_id = create_response.json()["id"]
-    assert create_response.json()["name"] == "Grace Hopper"
+    body = create_response.json()
+    assert body["name"] == "Grace Hopper"
+    assert (body["first_name"], body["last_name"]) == ("Grace", "Hopper")
+    assert body["email"] == "grace@navy.mil"
+    assert [s["id"] for s in body["subjects"]] == [subject_id]
 
     list_response = client.get("/api/students", headers=headers)
     assert list_response.status_code == 200
@@ -37,7 +46,7 @@ def test_full_student_lifecycle(client: TestClient) -> None:
 
     update_response = client.put(
         f"/api/students/{student_id}",
-        json={"name": "Grace B. Hopper"},
+        json={"first_name": "Grace B.", "last_name": "Hopper"},
         headers=headers,
     )
     assert update_response.status_code == 200
@@ -64,9 +73,43 @@ def test_get_unknown_student_returns_404(client: TestClient) -> None:
 def test_update_unknown_student_returns_404(client: TestClient) -> None:
     headers = _auth_headers(client)
 
-    response = client.put("/api/students/999", json={"name": "Nobody"}, headers=headers)
+    response = client.put(
+        "/api/students/999",
+        json={"first_name": "No", "last_name": "Body"},
+        headers=headers,
+    )
 
     assert response.status_code == 404
+
+
+def test_create_student_without_a_subject_is_rejected(client: TestClient) -> None:
+    """A brand-new account has no courses, so it has no subject to enroll into."""
+    headers = _auth_headers(client)
+
+    response = client.post(
+        "/api/students",
+        json={"first_name": "Grace", "last_name": "Hopper", "subject_ids": []},
+        headers=headers,
+    )
+
+    assert response.status_code == 422
+    assert client.get("/api/students", headers=headers).json() == []
+
+
+def test_create_student_in_another_teachers_subject_returns_404(
+    client: TestClient, other_headers: dict
+) -> None:
+    headers = _auth_headers(client)
+    their_subject = api_subject(client, other_headers)
+
+    response = client.post(
+        "/api/students",
+        json=student_payload("Grace Hopper", their_subject),
+        headers=headers,
+    )
+
+    assert response.status_code == 404
+    assert client.get("/api/students", headers=headers).json() == []
 
 
 def test_delete_unknown_student_returns_404(client: TestClient) -> None:

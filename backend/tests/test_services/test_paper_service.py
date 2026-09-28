@@ -7,7 +7,6 @@ from ai.orchestrator import AIOrchestrator
 from ai.profile_engine import ProfileEngine
 from ai.retrieval_service import RetrievalService
 from ai.scoring_service import ScoringService
-from application.repositories.student_repository import StudentRepository
 from application.repositories.subject_repository import SubjectRepository
 from application.repositories.teacher_repository import TeacherRepository
 from application.services.paper_service import (
@@ -19,9 +18,9 @@ from models.analysis_result import AnalysisResult
 from models.baseline_profile import BaselineProfile
 from models.feature_vector import FeatureVector
 from schemas.paper import AnalysisPaperCreate, BaselinePaperCreate
-from schemas.student import StudentCreate
 from schemas.subject import SubjectCreate
 from schemas.teacher import TeacherCreate
+from tests.helpers import db_student
 
 
 def _make_orchestrator() -> AIOrchestrator:
@@ -40,9 +39,7 @@ def _make_student_and_subject(db_session: Session) -> tuple[int, int, int]:
             name="Ada Lovelace", email="ada@example.com", password="secret123"
         )
     )
-    student = StudentRepository(db_session).create(
-        teacher.id, StudentCreate(name="Grace Hopper")
-    )
+    student = db_student(db_session, teacher.id)
     subject = SubjectRepository(db_session).create(
         teacher.id, SubjectCreate(name="Algebra")
     )

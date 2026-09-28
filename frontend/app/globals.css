@@ -14,46 +14,50 @@
  */
 
 @layer base {
+  /*
+   * Brand palette: ink #05102D, navy #1A2444, blue #2A468B / #3D6AC1,
+   * cream #FFF7E3, gold #B89343 / #CDB178 / #DFCBA7.
+   */
   :root {
-    /* Primary blue scale - actions, links, focus states */
-    --color-primary-50: 239 246 255;
-    --color-primary-100: 219 234 254;
-    --color-primary-200: 191 219 254;
-    --color-primary-300: 147 197 253;
-    --color-primary-400: 96 165 250;
-    --color-primary-500: 59 130 246;
-    --color-primary-600: 37 99 235;
-    --color-primary-700: 29 78 216;
-    --color-primary-800: 30 64 175;
-    --color-primary-900: 30 58 138;
+    /* Primary blue scale built around #3D6AC1 (500) and #2A468B (700) */
+    --color-primary-50: 238 242 251;
+    --color-primary-100: 221 229 246;
+    --color-primary-200: 187 203 237;
+    --color-primary-300: 140 167 222;
+    --color-primary-400: 96 135 208;
+    --color-primary-500: 61 106 193;
+    --color-primary-600: 50 88 168;
+    --color-primary-700: 42 70 139;
+    --color-primary-800: 32 53 107;
+    --color-primary-900: 26 36 68;
+
+    /* Gold accent - darkened in light mode so it holds up as text */
+    --color-accent: 150 115 40;
+    --color-accent-soft: 223 203 167;
 
     /* Surfaces. `elevated` sits above `bg` - cards, sheets, popovers. */
-    --color-bg: 246 246 248;
-    --color-bg-subtle: 241 241 245;
-    --color-bg-muted: 233 233 238;
+    --color-bg: 255 247 227;
+    --color-bg-subtle: 251 242 219;
+    --color-bg-muted: 244 233 207;
     --color-bg-elevated: 255 255 255;
 
-    /* Text: never pure black, following Apple's grey ramp */
-    --color-text: 28 28 30;
-    --color-text-muted: 99 99 102;
-    --color-text-subtle: 142 142 147;
+    --color-text: 5 16 45;
+    --color-text-muted: 67 76 104;
+    --color-text-subtle: 120 126 148;
 
-    /* Hairlines rather than heavy rules */
-    --color-border: 209 209 214;
-    --color-border-strong: 174 174 178;
+    --color-border: 236 222 194;
+    --color-border-strong: 223 203 167;
 
-    /* Status */
-    --color-success: 22 138 73;
-    --color-success-bg: 233 248 239;
-    --color-warning: 180 120 0;
-    --color-warning-bg: 255 247 230;
-    --color-danger: 200 32 38;
-    --color-danger-bg: 254 240 240;
+    --color-success: 21 128 61;
+    --color-success-bg: 229 246 235;
+    --color-warning: 161 98 7;
+    --color-warning-bg: 254 243 216;
+    --color-danger: 190 30 45;
+    --color-danger-bg: 253 236 236;
 
-    /* Layered shadows: soft and close, not a hard drop */
-    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.05);
-    --shadow-md: 0 1px 3px rgb(0 0 0 / 0.07), 0 4px 12px rgb(0 0 0 / 0.05);
-    --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.08), 0 12px 32px rgb(0 0 0 / 0.1);
+    --shadow-sm: 0 1px 2px rgb(5 16 45 / 0.05);
+    --shadow-md: 0 1px 3px rgb(5 16 45 / 0.06), 0 6px 16px rgb(5 16 45 / 0.06);
+    --shadow-lg: 0 2px 6px rgb(5 16 45 / 0.08), 0 12px 32px rgb(5 16 45 / 0.1);
 
     color-scheme: light;
   }
@@ -61,35 +65,38 @@
   /* Follow the system unless an explicit light theme is set. */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --color-primary-50: 23 37 62;
-      --color-primary-100: 28 48 84;
-      --color-primary-200: 33 62 115;
-      --color-primary-300: 44 85 160;
-      --color-primary-400: 56 110 205;
-      --color-primary-500: 74 137 233;
-      --color-primary-600: 96 160 250;
-      --color-primary-700: 130 182 252;
-      --color-primary-800: 170 205 253;
-      --color-primary-900: 208 228 254;
+      --color-primary-50: 18 30 66;
+      --color-primary-100: 24 40 86;
+      --color-primary-200: 32 54 114;
+      --color-primary-300: 42 70 139;
+      --color-primary-400: 52 88 170;
+      --color-primary-500: 61 106 193;
+      --color-primary-600: 61 106 193;
+      --color-primary-700: 118 152 220;
+      --color-primary-800: 160 186 234;
+      --color-primary-900: 205 217 243;
 
-      --color-bg: 0 0 0;
-      --color-bg-subtle: 20 20 22;
-      --color-bg-muted: 44 44 46;
-      --color-bg-elevated: 28 28 30;
+      --color-accent: 205 177 120;
+      --color-accent-soft: 184 147 67;
 
-      --color-text: 245 245 247;
-      --color-text-muted: 174 174 178;
-      --color-text-subtle: 128 128 134;
+      --color-bg: 5 16 45;
+      --color-bg-subtle: 9 21 54;
+      --color-bg-muted: 30 42 80;
+      --color-bg-elevated: 14 26 60;
 
-      --color-border: 58 58 60;
-      --color-border-strong: 84 84 88;
+      --color-text: 245 241 230;
+      --color-text-muted: 176 184 206;
+      --color-text-subtle: 125 135 165;
 
-      --color-success: 48 209 88;
-      --color-success-bg: 20 48 30;
-      --color-warning: 255 214 10;
-      --color-warning-bg: 51 43 8;
-      --color-danger: 255 105 97;
-      --color-danger-bg: 56 24 24;
+      --color-border: 32 46 86;
+      --color-border-strong: 52 70 118;
+
+      --color-success: 52 211 153;
+      --color-success-bg: 10 50 48;
+      --color-warning: 245 197 66;
+      --color-warning-bg: 56 44 14;
+      --color-danger: 248 113 113;
+      --color-danger-bg: 62 22 30;
 
       --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
       --shadow-md: 0 1px 3px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.4);
@@ -101,35 +108,38 @@
 
   /* An explicit choice always wins over the system preference. */
   :root[data-theme="dark"] {
-    --color-primary-50: 23 37 62;
-    --color-primary-100: 28 48 84;
-    --color-primary-200: 33 62 115;
-    --color-primary-300: 44 85 160;
-    --color-primary-400: 56 110 205;
-    --color-primary-500: 74 137 233;
-    --color-primary-600: 96 160 250;
-    --color-primary-700: 130 182 252;
-    --color-primary-800: 170 205 253;
-    --color-primary-900: 208 228 254;
+    --color-primary-50: 18 30 66;
+    --color-primary-100: 24 40 86;
+    --color-primary-200: 32 54 114;
+    --color-primary-300: 42 70 139;
+    --color-primary-400: 52 88 170;
+    --color-primary-500: 61 106 193;
+    --color-primary-600: 61 106 193;
+    --color-primary-700: 118 152 220;
+    --color-primary-800: 160 186 234;
+    --color-primary-900: 205 217 243;
 
-    --color-bg: 0 0 0;
-    --color-bg-subtle: 20 20 22;
-    --color-bg-muted: 44 44 46;
-    --color-bg-elevated: 28 28 30;
+    --color-accent: 205 177 120;
+    --color-accent-soft: 184 147 67;
 
-    --color-text: 245 245 247;
-    --color-text-muted: 174 174 178;
-    --color-text-subtle: 128 128 134;
+    --color-bg: 5 16 45;
+    --color-bg-subtle: 9 21 54;
+    --color-bg-muted: 30 42 80;
+    --color-bg-elevated: 14 26 60;
 
-    --color-border: 58 58 60;
-    --color-border-strong: 84 84 88;
+    --color-text: 245 241 230;
+    --color-text-muted: 176 184 206;
+    --color-text-subtle: 125 135 165;
 
-    --color-success: 48 209 88;
-    --color-success-bg: 20 48 30;
-    --color-warning: 255 214 10;
-    --color-warning-bg: 51 43 8;
-    --color-danger: 255 105 97;
-    --color-danger-bg: 56 24 24;
+    --color-border: 32 46 86;
+    --color-border-strong: 52 70 118;
+
+    --color-success: 52 211 153;
+    --color-success-bg: 10 50 48;
+    --color-warning: 245 197 66;
+    --color-warning-bg: 56 44 14;
+    --color-danger: 248 113 113;
+    --color-danger-bg: 62 22 30;
 
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-md: 0 1px 3px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.4);

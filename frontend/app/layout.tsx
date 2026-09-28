@@ -13,8 +13,8 @@ export const viewport: Viewport = {
   // Both themes are declared so the browser chrome matches the page before
   // React hydrates.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f6f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#FFF7E3" },
+    { media: "(prefers-color-scheme: dark)", color: "#05102D" },
   ],
 };
 

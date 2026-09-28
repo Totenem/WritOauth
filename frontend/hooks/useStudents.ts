@@ -33,6 +33,8 @@ export function useCreateStudent() {
     mutationFn: (payload: CreateStudentRequest) => studentService.createStudent(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: STUDENTS_QUERY_KEY });
+      // Enrollment changes course counts on /subjects.
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
     },
   });
 }
@@ -58,6 +60,7 @@ export function useDeleteStudent() {
     onSuccess: (_data, id) => {
       queryClient.removeQueries({ queryKey: studentQueryKey(id) });
       queryClient.invalidateQueries({ queryKey: STUDENTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
     },
   });
 }

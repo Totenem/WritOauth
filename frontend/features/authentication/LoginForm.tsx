@@ -1,11 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Button, Card, Input } from "@/components";
 import { getApiErrorMessage } from "@/utils/apiError";
+import AuthField from "./AuthField";
+import { AuthCard, FormError, GoogleButton, OrDivider, SubmitButton } from "./AuthCard";
+import { ArrowRightIcon, LockIcon, MailIcon } from "@/components/icons";
 
 interface LoginFormValues {
   email: string;
@@ -31,14 +33,14 @@ export default function LoginForm() {
   };
 
   return (
-    <Card>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-        <h2 className="text-xl font-semibold text-text">Sign In</h2>
-
-        <Input
+    <AuthCard title="Sign In" subtitle="Welcome back. Log in to continue evaluating authentic student work.">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+        <AuthField
           label="Email"
           type="email"
           autoComplete="email"
+          placeholder="Enter your email"
+          icon={<MailIcon />}
           error={errors.email?.message}
           {...register("email", {
             required: "Email is required",
@@ -49,31 +51,34 @@ export default function LoginForm() {
           })}
         />
 
-        <Input
+        <AuthField
           label="Password"
           type="password"
           autoComplete="current-password"
+          placeholder="Enter your password"
+          icon={<LockIcon />}
           error={errors.password?.message}
           {...register("password", { required: "Password is required" })}
         />
 
-        {loginError && (
-          <p role="alert" className="text-sm text-danger">
-            {getApiErrorMessage(loginError)}
-          </p>
-        )}
+        {loginError && <FormError message={getApiErrorMessage(loginError)} />}
 
-        <Button type="submit" disabled={isLoggingIn} className="w-full">
-          {isLoggingIn ? "Signing in..." : "Sign in"}
-        </Button>
+        <SubmitButton busy={isLoggingIn}>{isLoggingIn ? "Signing in..." : "Sign In"}</SubmitButton>
 
-        <p className="text-center text-sm text-text-subtle">
+        <OrDivider />
+        <GoogleButton />
+
+        <p className="text-center text-footnote text-brand-navy/80">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-primary-700 hover:underline">
-            Create one
+          <Link
+            href="/register"
+            scroll={false}
+            className="inline-flex items-center gap-0.5 font-semibold text-brand-blue hover:text-brand-blue-light"
+          >
+            Sign Up <ArrowRightIcon className="h-3 w-3" />
           </Link>
         </p>
       </form>
-    </Card>
+    </AuthCard>
   );
 }

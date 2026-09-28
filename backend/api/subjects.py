@@ -1,17 +1,27 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from application.services.subject_service import (
+    BatchUploadFormatError,
     SubjectForbiddenError,
     SubjectNotFoundError,
     SubjectService,
 )
+from config.settings import get_settings
 from database.connection import get_db
 from models.teacher import Teacher
-from schemas.subject import SubjectCreate, SubjectResponse, SubjectUpdate
+from schemas.subject import (
+    BatchUploadResult,
+    RosterResponse,
+    SubjectCreate,
+    SubjectResponse,
+    SubjectUpdate,
+)
 from utils.dependencies import get_current_teacher
 
 router = APIRouter(prefix="/api/subjects", tags=["subjects"])
+
+_OWNERSHIP_ERRORS = (SubjectNotFoundError, SubjectForbiddenError)
 
 
 @router.get("", response_model=list[SubjectResponse])
@@ -73,4 +83,51 @@ async def delete_subject(
     except (SubjectNotFoundError, SubjectForbiddenError) as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+
+
+@router.get("/{subject_id}/roster", response_model=RosterResponse)
+async def get_roster(
+    subject_id: int,
+    db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher),
+) -> RosterResponse:
+    try:
+        return SubjectService(db).get_roster(subject_id, current_teacher.id)
+    except _OWNERSHIP_ERRORS as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+
+
+@router.post("/{subject_id}/students/batch", response_model=BatchUploadResult)
+async def batch_upload_students(
+    subject_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher),
+) -> BatchUploadResult:
+    """Enroll many students into one course from the downloadable CSV template.
+
+    Bad rows are skipped and reported individually; only a file that can't
+    be read at all (wrong encoding, missing header) fails the whole request.
+    """
+    if not (file.filename or "").lower().endswith(".csv"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Upload a .csv file"
+        )
+    data = await file.read()
+    if len(data) > get_settings().max_upload_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="File is too large"
+        )
+    try:
+        return SubjectService(db).batch_upload(subject_id, current_teacher.id, data)
+    except _OWNERSHIP_ERRORS as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    except BatchUploadFormatError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
         ) from exc
